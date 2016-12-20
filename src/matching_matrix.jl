@@ -13,7 +13,12 @@ Check if supplied row and column correspond to a match in the matching matrix
 """
 function in(M::MatchMatrix, row::Int64, col::Int64)
     if row > M.nrow || col > M.ncol
-        error("Row or column outside matrix bounds")
+        return error("Row or column outside matrix bounds")
+    end
+    if  row <= 0 || col <= 0
+        return error("Row and column must be positive")
+    end
+
     for ii in 1:length(M.rows)
         if row == M.rows[ii] && col == M.cols[ii]
             return true
@@ -27,7 +32,7 @@ Find the index corresponding to the row and col in the matching matrix
 """
 function findindex(M::MatchMatrix, row::Int64, col::Int64)
     for ii in 1:length(M.rows)
-        if x == M.rows[ii] && y == M.cols[ii]
+        if row == M.rows[ii] && col == M.cols[ii]
             return ii
         end
     end
@@ -46,24 +51,29 @@ function add_match!(M::MatchMatrix, row::Int64, col::Int64; check::Bool = false)
     end
     
     #check if outside bounds
-    if x > M.nrow || y > M.ncol
+    if row > M.nrow || col > M.ncol
         error("Attempt to index outside of allowable range")
     end
-    push!(M.rows, x)
-    push!(M.cols, y)
+    push!(M.rows, row)
+    push!(M.cols, col)
     return M
 end
 
 function remove_match!(M::MatchMatrix, row::Int64, col::Int64)
     idx = findindex(M, row, col)
     #check if match exists
+    if idx == 0
+        println("Does not  exists, no change made")
+        return M
+    end
+    
     #find index
-    deleteat!()
-    deleteat!()
+    deleteat!(M.rows, idx)
+    deleteat!(M.cols, idx)
     return M
 end
 
-function convert{G <: Integer}(T::Array{G, 2}, M::MatchMatrix)
+function convert{G <: Integer}(::Type{Array{G, 2}}, M::MatchMatrix)
     out = zeros(G, M.nrow, M.ncol)
     for ii in 1:length(M.rows)
         out[M.rows[ii], M.cols[ii]] = 1
@@ -72,11 +82,11 @@ function convert{G <: Integer}(T::Array{G, 2}, M::MatchMatrix)
 end
 
 function empty_rows(M::MatchMatrix)
-    return setdiff(1:M.nrow, M.row)
+    return setdiff(1:M.nrow, M.rows)
 end
 
 function empty_cols(M::MatchMatrix)
-    return setdiff(1:M.ncol, M.col)
+    return setdiff(1:M.ncol, M.cols)
 end
 
 #Liseo and Tancredi: Bayesian Estimation of Population Size
@@ -102,7 +112,7 @@ function move_matchmatrix_row!(M::MatchMatrix, p::AbstractFloat)
     return M
 end
 
-function move_matchmatrix_col(M::MatchMatrix, p::AbstractFloat)
+function move_matchmatrix_col!(M::MatchMatrix, p::AbstractFloat)
     c = StatsBase.sample(1:M.ncol)
     idx = findnext(M.cols, c, 1)
     if idx == 0
@@ -122,13 +132,57 @@ function move_matchmatrix_col(M::MatchMatrix, p::AbstractFloat)
 end
 
 
-function move_matchmatrix(M::MatchMatrix, p::AbstractFloat)
+function move_matchmatrix!(M::MatchMatrix, p::AbstractFloat)
     if p < 0.0 || p > 1.0
         error("p must be between 0 and 1")
     end
     if M.nrow <= M.ncol
-        move_matchmatrix_row(M, p)
+        return move_matchmatrix_row!(M, p)
     else
-        move_matchmatrix_col(M, p)
+        return move_matchmatrix_col!(M, p)
+    end
+end
+
+function move_matchmatrix(M::MatchMatrix, p::AbstractFloat)
+    return move_matchmatrix!(MatchMatrix(copy(M.rows), copy(M.cols), copy(M.nrow), copy(M.ncol)), p)
+end
+
+function ratio_pmove_row(M1::MatchMatrix, M2::MatchMatrix, p::AbstractFloat)
+    matchchange = length(M1.rows) - length(M2.rows)
+    if matchchange == 1
+        return p * (M1.ncol - length(M1.rows))
+    elseif matchchange == -1
+        return  1.0 / (p * (M1.ncol - length(M2.rows)))
+    elseif matchchange == 0
+        return 1.0
+    else
+        return 0.0
+    end
+end
+
+function ratio_pmove_col(M1::MatchMatrix, M2::MatchMatrix, p::AbstractFloat)
+    matchchange = length(M1.cols) - length(M2.cols)
+    if matchchange == 1
+        return p * (M1.nrow - length(M1.cols))
+    elseif matchchange == -1
+        return  1.0 / (p * (M1.nrow - length(M2.cols)))
+    elseif matchchange == 0
+        return 1.0
+    else
+        return 0.0
+    end
+end
+
+function ratio_pmove(M1::MatchMatrix, M2::MatchMatrix, p::AbstractFloat)
+    if p < 0.0 || p > 1.0
+        error("p must be between 0 and 1")
+    end
+    if M1.nrow != M2.nrow || M1.ncol != M2.ncol
+        error("MatchMatrixes must have the same dimension")
+    end
+    if M1.nrow <= M1.ncol
+        return ratio_pmove_row(M1, M2, p)
+    else
+        return ratio_pmove_col(M1, M2, p)
     end
 end
