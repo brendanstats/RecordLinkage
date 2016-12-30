@@ -35,12 +35,14 @@ function logistic(α::AbstractFloat)
 end
 
 
-Distributions.pdf(d::LogisticNormal, x::Real) = exp(-(logit(x) - logit(d.x0))^2 / (2 * d.σ^2)) / (sqrt(2 * pi) * d.σ) * (1/x + 1/(1 - x))
+Distributions.pdf(d::LogisticNormal, x::Real) = exp(-(logit(x) - logit(d.x0))^2 / (2. * d.σ^2)) / (sqrt(2. * pi) * d.σ) * (1. / x + 1. / (1. - x))
+Distributions.logpdf(d::LogisticNormal, x::Real) = -(logit(x) - logit(d.x0))^2 / (2. * d.σ^2) - log(2. * pi) / .2 + log(d.σ) + log(1. / x + 1. / (1. - x))
 
 #### Sampling
 
 Distributions.rand(d::LogisticNormal) = logistic(logit(d.x0) + d.σ * randn())
 
+#### Test things run, move to unit tests
 d = LogisticNormal(0.5, 1.0)
 params(d)
 median(d)
