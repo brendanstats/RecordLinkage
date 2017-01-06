@@ -3,7 +3,7 @@
 #0
 #1
 
-function datatotable(data::Array{Integer, 3}, C::MatchMatrix)
+function datatotable{G <: Integer}(data::Array{G, 3}, C::MatchMatrix)
     if size(data, 2) != C.nrow
         error("second dimention of data must match number of rows in MatchMatrix")
     end
@@ -27,8 +27,7 @@ function datatotable(data::Array{Integer, 3}, C::MatchMatrix)
     return datatable
 end
 
-function loglikelihood(datatable::Array{Integer, 3}, γM::Array{AbstractFloat, 1},
-                       γU::Array{AbstractFloat, 1})
+function loglikelihood_datatable{G <: Integer, T <: AbstractFloat}(datatable::Array{G, 3}, γM::Array{T, 1}, γU::Array{T, 1})
     if any(γM .< 0.0) || any(γM .> 1.0)
         error("M probabilities must be between 0 and 1")
     end
@@ -52,36 +51,32 @@ function loglikelihood(datatable::Array{Integer, 3}, γM::Array{AbstractFloat, 1
     return loglike
 end
 
-function metropolis_hastings(niter::Integer, data::Array{AbstractFloat, 3},
-                              C0::MatchMatrix, M0::Array{AbstractFloat, 1}, U0::Array{AbstractFloat, 1},
-                             logpdfC::Function, logpdfM::Function, logpdfU::Function, loglikelihood::Function,
-                             transitionC::Function, transitionMU::Function,
-                             transitionC_ratio::Function, transitionMU_ratio::Function)
+function metropolis_hastings{G <: Integer, T <: AbstractFloat}(niter::G, data::Array{G, 3}, C0::MatchMatrix, M0::Array{T, 1}, U0::Array{T, 1}, logpdfC::Function, logpdfM::Function, logpdfU::Function, loglikelihood::Function, transitionC::Function, transitionMU::Function,transitionC_ratio::Function, transitionMU_ratio::Function)
     CArray = Array{MatchMatrix}(niter)
     γMArray = Array{eltype(γM0)}(niter, length(γM0))
     γUArray = Array{eltype(γU0)}(niter, length(γU0))
 
     ii = 1
     CArray[ii] = C0
-    γMArray[ii, :] = γM0
-    γUArray[ii, :] = γU0
+    MArray[ii, :] = M0
+    UArray[ii, :] = U0
     datatable0 = datatotable(data, C0)
     
-    logP = logpdfC(C0) + logpdfM(γM0) + logpdfM(γU0) + loglikelihood(datatable0)
+    logP = logpdfC(C0) + logpdfM(M0) + logpdfU(U0) + loglikelihood(datatable0)
 
     while ii < niter
         #draw proposal
         propC = transitionC(CArray[ii])
         propDatatable = datatotable(data, propC)
-        propγM = transitionγ(γM0)
-        propγU = transitionγ(γU0)
+        propM = transitionMU(M0)
+        propU = transitionMU(U0)
 
         #compute a1
-        proplogP = logpdfC(propC) + logpdfM(propγM) + logpdfM(propγU) + loglikelihood(propDatatable)
+        proplogP = logpdfC(propC) + logpdfM(propM) + logpdfU(propU) + loglikelihood(propDatatable)
         a1 = exp(proplogP - logP)
         
         #compute a2
-        a2 = transitionC_ratio(CArray[ii], propC) * transitionγ_(γMArray[1, :], propγM) * transitionγ_(γUArray[1, :], propγU)
+        a2 = transitionC_ratio(CArray[ii], propC) * transitionMU_ratio(MArray[ii, :], propM) * transitionMU_ratio(UArray[ii, :], propU)
         ii += 1
         if rand() < a1 * a2            
             #update parameters
@@ -98,4 +93,20 @@ function metropolis_hastings(niter::Integer, data::Array{AbstractFloat, 3},
         end
     end
     return CArray, γMArray, γUArray
+end
+
+function countones{G <: Integer}(data::Array{G, 3})
+    out = Array{Int64}(size(data)[2:3]...)
+    for ii in eachindex(out)
+        out[ii] = sum(data[:, ii])
+    end
+    return out
+end
+
+function countones{G <: Integer, T <: AbstractFloat}(data::Array{G, 3}, weights::Array{T, 1})
+    out = Array{Int64}(size(data)[2:3]...)
+    for ii in eachindex(out)
+        out[ii] = dot(data[:, ii], weights)
+    end
+    return out
 end
