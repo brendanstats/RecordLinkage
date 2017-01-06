@@ -5,7 +5,7 @@ immutable LogisticNormal{T <: Real} <: Distributions.ContinuousUnivariateDistrib
 end
 
 #### Outer constructors
-LogisticNormal{T <: Real}(x0::T, σ::T) = LogisticNormal{T}(x0, σ)
+#LogisticNormal{T <: Real}(x0::T, σ::T) = LogisticNormal{T}(x0, σ)
 LogisticNormal(x0::Real, σ::Real) = LogisticNormal(promote(x0, σ)...)
 LogisticNormal(x0::Integer, σ::Integer) = LogisticNormal(Float64(x0), Float64(σ))
 LogisticNormal(x0::Real) = LogisticNormal(x0, 1.0)

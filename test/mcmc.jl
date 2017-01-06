@@ -4,10 +4,10 @@ import StatsBase
 import Distributions
 
 include("../src/matching_matrix.jl")
-include("../src/logitnormal.jl") #issue line 8 (overwrites 2)
-include("../src/uniformsinglelinkage.jl") #issue line 16 (overwrites 10)
-include("../src/truncatedpoisson.jl") #issue line 8 (overwrites 2)
-include("../src/simrecords.jl") #issue line 55 method not callable
+include("../src/logitnormal.jl")
+include("../src/uniformsinglelinkage.jl")
+include("../src/truncatedpoisson.jl")
+include("../src/simrecords.jl")
 include("../src/mcmc.jl")
 
 pM = [0.8, 0.9, 0.75]

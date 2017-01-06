@@ -5,7 +5,6 @@ immutable TruncatedPoisson{T <: Real, G <: Integer} <: Distributions.DiscreteUni
 end
 
 #### Outer constructors
-TruncatedPoisson{T <: Real, G <: Integer}(λ::T, tmax::G, α::T) = TruncatedPoisson{T, G}(λ, tmax, α)
 TruncatedPoisson(λ::Integer, tmax::Integer, α::Integer) = TruncatedPoisson(Float64(λ), tmax, Float64(α))
 
 function TruncatedPoisson{T <: Real, G <: Integer}(λ::T, tmax::G)

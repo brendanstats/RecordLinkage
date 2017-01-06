@@ -13,7 +13,7 @@ immutable UniformSingleLinkage{G <: Integer} <: Distributions.DiscreteMatrixDist
 end
 
 #### Outer constructors
-UniformSingleLinkage{G <: Integer}(nrow::G, ncol::G, t::G) = UniformSingleLinkage{G}(nrow, ncol, t)
+#UniformSingleLinkage{G <: Integer}(nrow::G, ncol::G, t::G) = UniformSingleLinkage{G}(nrow, ncol, t)
 UniformSingleLinkage(nrow::Real, ncol::Real, t::Real) = UniformSingleLinkage(promote(nrow, ncol, t)...)
 UniformSingleLinkage(d::Integer, t::Integer) = UniformSingleLinkage(d, d, t)
 
