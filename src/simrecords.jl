@@ -1,5 +1,5 @@
-import StatsBase
-include("matching_matrix.jl")
+#import StatsBase
+#include("matching_matrix.jl")
 
 """
 Simulate data corresponding to binary comparison metrics for record linkage, enforcing single linkage of records
@@ -51,7 +51,7 @@ function simulate_singlelinkage_binary{G <: AbstractFloat, T <: Integer}(nrecord
     return out, trueC
 end
 
-function simulate_singlelinkage_binary{G <: AbstractFloat, T <: Integer}(C::MatchMatrix, pM::Array{G, 1}, pU::Array{G, 1})
+function simulate_singlelinkage_binary{G <: AbstractFloat}(C::MatchMatrix, pM::Array{G, 1}, pU::Array{G, 1})
     if any(pM .< 0.0) || any(pM .> 1.0)
         error("M probabilities must be between 0 and 1")
     end
@@ -62,14 +62,12 @@ function simulate_singlelinkage_binary{G <: AbstractFloat, T <: Integer}(C::Matc
         error("Length of M probabilities and U probabilities must match")
     end
     nmeasure = length(pM)
-    out = Array{Int64}(nmeasure, C.nrow, C.ncol)
-    for ii in C.nrow
-        for jj in C.ncol
-            out[:, ii, jj] = Int64.(rand(nmeasure) .< pU)
-        end
+    out = Array{Int8}(nmeasure, C.nrow, C.ncol)
+    for ii in eachindex(out[1, :, :])
+        out[:, ii] = Int8.(rand(nmeasure) .< pU)
     end
     for kk in 1:length(C.rows)
-        out[:, C.rows[kk], C.cols[kk]] = Int64.(rand(nmeasure) .< pM)
+        out[:, C.rows[kk], C.cols[kk]] = Int8.(rand(nmeasure) .< pM)
     end
     return out
 end

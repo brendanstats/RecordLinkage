@@ -1,21 +1,15 @@
-"""
-Uniform distribution over single linkage matching matricies
-"""
-import StatsBase
-import Distributions
-include("matching_matrix.jl")
+#"""
+#Uniform distribution over single linkage matching matricies
+#"""
 
+#import StatsBase
+#import Distributions
+#include("matching_matrix.jl")
 
 immutable UniformSingleLinkage{G <: Integer} <: Distributions.DiscreteMatrixDistribution
     nrow::G # Number of rows
     ncol::G # Number of columns
     t::G # Number of Matches
-
-    #function UniformSingleLinkage(nrow::G, ncol::nc, t::G)
-    #    @check_args(UniformSingleLinkage, zero(t) <= t <= max(nrow, ncol))
-    #    @check_args(UniformSingleLinkage, zero(nrow) <= nrow)
-    #    @check_args(UniformSingleLinkage, zero(ncol) <= ncol)
-    #end
 end
 
 #### Outer constructors
@@ -31,7 +25,7 @@ params(d::UniformSingleLinkage) = (d.nrow, d.ncol, d.t)
 #### Evaluation
 
 function Distributions.pdf(d::UniformSingleLinkage, M::MatchMatrix)
-    if d.t != length(M.rows) || d.nrow != M.nrow || d.ncol != 
+    if d.t != length(M.rows) || d.nrow != M.nrow || d.ncol != M.ncol
         return 0.0
     elseif d.t == 0
         return 1.0
@@ -58,22 +52,19 @@ end
 
 #### Sampling
 
-function rand(d::UniformSingleLinkage)
-    rows = StatsBase.sample(1:d.nrow, d.t)
-    cols = StatsBase.sample(1:d.ncol, d.t)
+function Distributions.rand(d::UniformSingleLinkage)
+    rows = StatsBase.sample(1:d.nrow, d.t, replace = false)
+    cols = StatsBase.sample(1:d.ncol, d.t, replace = false)
     return MatchMatrix(rows, cols, d.nrow, d.ncol)
 end
 
 
 #### Test things run, move to unit tests
 d = UniformSingleLinkage(5, 5, 3)
-Distributions.pdf(d, MatchMatrix([1], [1], 5, 5))
+Distributions.pdf(d, MatchMatrix([1], [1], 5, 5)) == 0
+Distributions.pdf(d, MatchMatrix([1, 2, 3], [1, 2, 3], 5, 5)) == (factorial(3) * binomial(5, 3) * binomial(5, 3)) ^ -1.
 
-Distributions.pdf(d, MatchMatrix([1, 2, 3], [1, 2, 3], 5, 5))
-(factorial(3) * binomial(5, 3) * binomial(5, 3)) ^ -1.
-
-log(Distributions.pdf(d, MatchMatrix([1, 2, 3], [1, 2, 3], 5, 5)))
-Distributions.logpdf(d, MatchMatrix([1, 2, 3], [1, 2, 3], 5, 5))
+log(Distributions.pdf(d, MatchMatrix([1, 2, 3], [1, 2, 3], 5, 5))) == Distributions.logpdf(d, MatchMatrix([1, 2, 3], [1, 2, 3], 5, 5))
 
 params(d)
-rand(d)
+Distributions.rand(d)

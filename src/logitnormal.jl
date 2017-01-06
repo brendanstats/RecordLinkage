@@ -1,6 +1,3 @@
-import StatsBase
-import Distributions
-
 immutable LogisticNormal{T <: Real} <: Distributions.ContinuousUnivariateDistribution
     x0::T
     σ::T
