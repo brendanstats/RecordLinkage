@@ -19,10 +19,11 @@ function datatotable{G <: Integer}(data::Array{G, 3}, C::MatchMatrix)
                 if data[ii, C.rows[kk], C.cols[kk]] == 1
                     datatable[ii, 2, 2] += 1
                 end
-                datatable[ii, 1, 2] = nones - datatable[ii, 2, 2]
-                datatable[ii, 2, 1] = sum(data[ii, :, :]) - datatable[ii, 2, 2]
-                datatable[ii, 1, 1] = nobs - sum(datatable[ii, :, :])
-        end
+            end
+        datatable[ii, 1, 2] = nones - datatable[ii, 2, 2]
+        datatable[ii, 2, 1] = sum(data[ii, :, :]) - datatable[ii, 2, 2]
+        datatable[ii, 1, 1] = nobs - sum(datatable[ii, :, :])
+        
     end
     return datatable
 end
