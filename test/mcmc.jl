@@ -37,18 +37,21 @@ end
 
 lpC(C0)
 
+d = Distributions.Beta(5, 2)
+Distributions.logpdf(d, pM)
+
 #logpdfM::Function #Distributions.logpdf(d::LogisticNormal, x::Real)
 function lpM{T <: AbstractFloat}(γM::Array{T, 1})
-    d = x
-    Distributions.logpdf.(d, γM)
+    d = Distributions.Beta(5, 2)
+    return sum(Distributions.logpdf(d, γM))
 end
 
 lpM(M0)
 
 #logpdfU::Function #Distributions.logpdf(d::LogisticNormal, x::Real)
 function lpU{T <: AbstractFloat}(γU::Array{T, 1})
-    d = x
-    Distributions.logpdf.(d, γU)
+    d = Distributions.Beta(2, 20)
+    return sum(Distributions.logpdf(d, γU))
 end
 
 lpU(U0)
@@ -90,6 +93,26 @@ function transMU_ratio{T <: AbstractFloat}(p1::Array{T, 1}, p2::Array{T, 1})
     return exp(logp)
 end
 
-niter = 20
+niter = 100000
 
-metropolis_hastings(niter, data, C0, M0, U0, lpC, lpM, lpU, loglikelihood_datatable, transC, transMU, transC_ratio, transMU_ratio)
+CArray, MArray, UArray = metropolis_hastings(niter, data, C0, M0, U0, lpC, lpM, lpU, loglikelihood_datatable, transC, transMU, transC_ratio, transMU_ratio)
+
+nmatches, matchdist = totalmatches(CArray)
+
+using RCall
+
+m1 = vec(MArray[:, 1])
+m2 = vec(MArray[:, 2])
+m3 = vec(MArray[:, 3])
+
+u1 = vec(UArray[:, 1])
+u2 = vec(UArray[:, 2])
+u3 = vec(UArray[:, 3])
+
+@rput m1 m2 m3 u1 u2 u3
+R"plot(density(m1))"
+R"plot(density(m2))"
+R"plot(density(m3))"
+R"plot(density(u1))"
+R"plot(density(u2))"
+R"plot(density(u3))"
