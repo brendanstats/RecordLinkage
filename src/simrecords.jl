@@ -71,3 +71,8 @@ function simulate_singlelinkage_binary{G <: AbstractFloat}(C::MatchMatrix, pM::A
     end
     return out
 end
+
+function gridtoarray{G <: Real}(x::Array{G, 2})
+    nrow, ncol = size(x)
+    return [repeat(1:nrow, outer=ncol) repeat(1:ncol, inner=nrow) vec(x)]
+end
