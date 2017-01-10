@@ -40,7 +40,7 @@ function Distributions.logpdf(d::UniformSingleLinkage, M::MatchMatrix)
     elseif d.t ==  0
         return 0.0
     elseif d.t == M.nrow && d.t == M.ncol
-        return -sum(log(1:t))
+        return -sum(log(1:d.t))
     elseif d.t == M.nrow && d.t != M.ncol
         return -sum(log((M.ncol - d.t + 1):M.ncol))
     elseif d.t != M.nrow && d.t == M.ncol
