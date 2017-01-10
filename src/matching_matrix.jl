@@ -148,7 +148,7 @@ function move_matchmatrix(M::MatchMatrix, p::AbstractFloat)
 end
 
 function ratio_pmove_row(M1::MatchMatrix, M2::MatchMatrix, p::AbstractFloat)
-    matchchange = length(M1.rows) - length(M2.rows)
+    matchchange = length(M2.rows) - length(M1.rows)
     if matchchange == 1
         return p * (M1.ncol - length(M1.rows))
     elseif matchchange == -1
@@ -161,7 +161,7 @@ function ratio_pmove_row(M1::MatchMatrix, M2::MatchMatrix, p::AbstractFloat)
 end
 
 function ratio_pmove_col(M1::MatchMatrix, M2::MatchMatrix, p::AbstractFloat)
-    matchchange = length(M1.cols) - length(M2.cols)
+    matchchange = length(M2.rows) - length(M1.rows)
     if matchchange == 1
         return p * (M1.nrow - length(M1.cols))
     elseif matchchange == -1
@@ -185,4 +185,8 @@ function ratio_pmove(M1::MatchMatrix, M2::MatchMatrix, p::AbstractFloat)
     else
         return ratio_pmove_col(M1, M2, p)
     end
+end
+
+function match_pairs(M::MatchMatrix)
+    return [M.rows M.cols]
 end
