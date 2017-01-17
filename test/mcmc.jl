@@ -4,7 +4,7 @@ import StatsBase
 import Distributions
 
 include("../src/matching_matrix.jl")
-include("../src/logitnormal.jl")
+include("../src/logisticnormal.jl")
 include("../src/uniformsinglelinkage.jl")
 include("../src/truncatedpoisson.jl")
 include("../src/simrecords.jl")
