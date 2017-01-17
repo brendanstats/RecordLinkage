@@ -148,47 +148,58 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(niter::Int
     UArray = Array{eltype(U0)}(niter, length(U0))
 
     ii = 1
-    CArray[ii] = C0
-    MArray[ii, :] = M0
-    UArray[ii, :] = U0
-    datatable0 = datatotable(data, C0)
-    
+    currC = C0
+    currTable = datatotable(curr, C0)
+    currM = M0
+    currU = U0
+        
     logP = logpdfC(C0) + logpdfM(M0) + logpdfU(U0) + loglikelihood(datatable0, M0, U0)
 
     #out iteration
-    while ii < niter
-        currC = CArray[ii]
-        crrM
+    for ii in 1:niter
+        
         #Inner iteration for C
         for cc in 1:nC
-            propC = transitionC(CArray[ii])
-            propDatatable = datatotable(data, propC)
+            propC = transitionC(currC)
+            propTable = datatotable(data, propC)
+            #compute a1
+            a1 = exp(logpdfC(propC) + loglikelihood(propTable, currM, currU) - logpdfC(currC) - loglikelihood(currTable, currM, currU))
+            #compute a2
+            a2 = transitionC_ratio(currC, propC)
+            if rand() < a1 * a2
+                currC = probC
+                currTable = propTable
+            end
         end
-        
-        
-        propM = transitionMU(M0)
-        propU = transitionMU(U0)
 
-        #compute a1
-        proplogP = logpdfC(propC) + logpdfM(propM) + logpdfU(propU) + loglikelihood(propDatatable, propM, propU)
-        a1 = exp(proplogP - logP)
-        
-        #compute a2
-        a2 = transitionC_ratio(CArray[ii], propC) * transitionMU_ratio(MArray[ii, :], propM) * transitionMU_ratio(UArray[ii, :], propU)
-        ii += 1
-        if rand() < a1 * a2            
-            #update parameters
-            CArray[ii] = propC
-            MArray[ii, :] = propM
-            UArray[ii, :] = propU
-            
-            #update probabilities
-            logP = proplogP
-        else
-            CArray[ii] = CArray[ii - 1]
-            MArray[ii, :] = MArray[ii - 1, :]
-            UArray[ii, :] = UArray[ii - 1, :]
+        #Inner iteration for M
+        for mm in nM
+            propM = transitionMU(currM)
+            #compute a1
+            a1 = exp(logpdfM(propM) + loglikelihood(currTable, propM, currU) - logpdfM(currM) - loglikelihood(currTable, currM, currU))
+            #compute a2
+            a2 = transitionMU_ratio(MArray[ii, :], propM)
+            if rand() < a1 * a2
+                currM = propM
+            end
         end
+
+        #Inner iteration for M
+        for uu in nU
+            propU = transitionMU(currU)
+            #compute a1
+            a1 = exp(logpdfU(propU) + loglikelihood(currTable, currM, propU) - logpdfU(currU) - loglikelihood(currTable, currM, currU))
+            #compute a2
+            a2 = transitionMU_ratio(UArray[ii, :], propU)
+            if rand() < a1 * a2
+                currU = propU
+            end
+        end
+
+        #Add states to chain
+        CArray[ii] = currC
+        MArray[ii, :] = currM
+        UArray[ii, :] = currU
     end
     return CArray, MArray, UArray
 end
