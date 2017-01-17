@@ -33,7 +33,7 @@ end
 
 
 Distributions.pdf(d::LogisticNormal, x::Real) = exp(-(logit(x) - logit(d.x0))^2 / (2. * d.σ^2)) / (sqrt(2. * pi) * d.σ) * (1. / x + 1. / (1. - x))
-Distributions.logpdf(d::LogisticNormal, x::Real) = -(logit(x) - logit(d.x0))^2 / (2. * d.σ^2) - log(2. * pi) / .2 + log(d.σ) + log(1. / x + 1. / (1. - x))
+Distributions.logpdf(d::LogisticNormal, x::Real) = -(logit(x) - logit(d.x0))^2 / (2. * d.σ^2) - log(2. * pi) / .2 - log(d.σ) + log(1. / x + 1. / (1. - x))
 
 #### Sampling
 
