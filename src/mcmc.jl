@@ -69,8 +69,8 @@ function metropolis_hastings{G <: Integer, T <: AbstractFloat}(niter::Int64, dat
         #draw proposal
         propC = transitionC(CArray[ii])
         propDatatable = datatotable(data, propC)
-        propM = transitionMU(M0)
-        propU = transitionMU(U0)
+        propM = transitionMU(MArray[ii, :])
+        propU = transitionMU(UArray[ii, :])
 
         #compute a1
         proplogP = logpdfC(propC) + logpdfM(propM) + logpdfU(propU) + loglikelihood(propDatatable, propM, propU)
@@ -125,4 +125,70 @@ function totalmatches(x::Array{MatchMatrix, 1})
         end
     end
     return nmatches, totals ./ n
+end
+
+function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(niter::Int64,
+                                                                      data::Array{G, 3},
+                                                                      C0::MatchMatrix,
+                                                                      M0::Array{T, 1},
+                                                                      U0::Array{T, 1},
+                                                                      logpdfC::Function,
+                                                                      logpdfM::Function,
+                                                                      logpdfU::Function,
+                                                                      loglikelihood::Function,
+                                                                      transitionC::Function,
+                                                                      transitionMU::Function,
+                                                                      transitionC_ratio::Function,
+                                                                      transitionMU_ratio::Function;
+                                                                      nC::Int64 = 1,
+                                                                      nM::Int64 = 1,
+                                                                      nU::Int64 = 1)
+    CArray = Array{MatchMatrix}(niter)
+    MArray = Array{eltype(M0)}(niter, length(M0))
+    UArray = Array{eltype(U0)}(niter, length(U0))
+
+    ii = 1
+    CArray[ii] = C0
+    MArray[ii, :] = M0
+    UArray[ii, :] = U0
+    datatable0 = datatotable(data, C0)
+    
+    logP = logpdfC(C0) + logpdfM(M0) + logpdfU(U0) + loglikelihood(datatable0, M0, U0)
+
+    #out iteration
+    while ii < niter
+        currC = CArray[ii]
+        crrM
+        #Inner iteration for C
+        for cc in 1:nC
+            propC = transitionC(CArray[ii])
+            propDatatable = datatotable(data, propC)
+        end
+        
+        
+        propM = transitionMU(M0)
+        propU = transitionMU(U0)
+
+        #compute a1
+        proplogP = logpdfC(propC) + logpdfM(propM) + logpdfU(propU) + loglikelihood(propDatatable, propM, propU)
+        a1 = exp(proplogP - logP)
+        
+        #compute a2
+        a2 = transitionC_ratio(CArray[ii], propC) * transitionMU_ratio(MArray[ii, :], propM) * transitionMU_ratio(UArray[ii, :], propU)
+        ii += 1
+        if rand() < a1 * a2            
+            #update parameters
+            CArray[ii] = propC
+            MArray[ii, :] = propM
+            UArray[ii, :] = propU
+            
+            #update probabilities
+            logP = proplogP
+        else
+            CArray[ii] = CArray[ii - 1]
+            MArray[ii, :] = MArray[ii - 1, :]
+            UArray[ii, :] = UArray[ii - 1, :]
+        end
+    end
+    return CArray, MArray, UArray
 end
