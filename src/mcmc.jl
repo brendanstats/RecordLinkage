@@ -127,34 +127,42 @@ function totalmatches(x::Array{MatchMatrix, 1})
     return nmatches, totals ./ n
 end
 
-function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(niter::Int64,
-                                                                      data::Array{G, 3},
-                                                                      C0::MatchMatrix,
-                                                                      M0::Array{T, 1},
-                                                                      U0::Array{T, 1},
-                                                                      logpdfC::Function,
-                                                                      logpdfM::Function,
-                                                                      logpdfU::Function,
-                                                                      loglikelihood::Function,
-                                                                      transitionC::Function,
-                                                                      transitionMU::Function,
-                                                                      transitionC_ratio::Function,
-                                                                      transitionMU_ratio::Function;
-                                                                      nC::Int64 = 1,
-                                                                      nM::Int64 = 1,
-                                                                      nU::Int64 = 1)
+function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
+    niter::Int64,
+    data::Array{G, 3},
+    C0::MatchMatrix,
+    M0::Array{T, 1},
+    U0::Array{T, 1},
+    logpdfC::Function,
+    logpdfM::Function,
+    logpdfU::Function,
+    loglikelihood::Function,
+    transitionC::Function,
+    transitionM::Function,
+    transitionU::Function,
+    transitionC_ratio::Function,
+    transitionM_ratio::Function,
+    transitionU_ratio::Function;
+    nC::Int64 = 1,
+    nM::Int64 = 1,
+    nU::Int64 = 1)
+    
+    #MCMC Chains
     CArray = Array{MatchMatrix}(niter)
     MArray = Array{eltype(M0)}(niter, length(M0))
     UArray = Array{eltype(U0)}(niter, length(U0))
 
-    ii = 1
+    #Track transitions
+    transC = falses(niter)
+    transM = falses(niter)
+    transU = falses(niter)
+
+    #Initial States
     currC = C0
-    currTable = datatotable(curr, C0)
+    currTable = datatotable(data, currC)
     currM = M0
     currU = U0
-        
-    logP = logpdfC(C0) + logpdfM(M0) + logpdfU(U0) + loglikelihood(datatable0, M0, U0)
-
+    
     #out iteration
     for ii in 1:niter
         
@@ -162,37 +170,49 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(niter::Int
         for cc in 1:nC
             propC = transitionC(currC)
             propTable = datatotable(data, propC)
+            #println("prop C")
             #compute a1
             a1 = exp(logpdfC(propC) + loglikelihood(propTable, currM, currU) - logpdfC(currC) - loglikelihood(currTable, currM, currU))
+            #println("a1 C")
             #compute a2
             a2 = transitionC_ratio(currC, propC)
+            #println("a2 C")
             if rand() < a1 * a2
-                currC = probC
+                currC = propC
                 currTable = propTable
+                transC[ii] = true
             end
         end
 
         #Inner iteration for M
         for mm in nM
-            propM = transitionMU(currM)
+            propM = transitionM(currM)
+            #println("prop M")
             #compute a1
             a1 = exp(logpdfM(propM) + loglikelihood(currTable, propM, currU) - logpdfM(currM) - loglikelihood(currTable, currM, currU))
+            #println("a1 M")
             #compute a2
-            a2 = transitionMU_ratio(MArray[ii, :], propM)
+            a2 = transitionM_ratio(currM, propM)
+            #println("a2 M")
             if rand() < a1 * a2
                 currM = propM
+                transM[ii] = true
             end
         end
 
         #Inner iteration for M
         for uu in nU
-            propU = transitionMU(currU)
+            propU = transitionU(currU)
+            #println("prop U")
             #compute a1
             a1 = exp(logpdfU(propU) + loglikelihood(currTable, currM, propU) - logpdfU(currU) - loglikelihood(currTable, currM, currU))
+            #println("a1 U")
             #compute a2
-            a2 = transitionMU_ratio(UArray[ii, :], propU)
+            a2 = transitionU_ratio(currU, propU)
+            #println("a2 U")
             if rand() < a1 * a2
                 currU = propU
+                transU[ii] = true
             end
         end
 
@@ -201,5 +221,5 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(niter::Int
         MArray[ii, :] = currM
         UArray[ii, :] = currU
     end
-    return CArray, MArray, UArray
+    return CArray, MArray, UArray, transC, transM, transU
 end
