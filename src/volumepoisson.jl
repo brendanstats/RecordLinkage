@@ -1,7 +1,7 @@
 immutable VolumePoisson{T <: Real, G <: Integer} <: Distributions.DiscreteUnivariateDistribution
     θ::T
     n::G
-    m::T
+    m::G
     α::Float64
 end
 
