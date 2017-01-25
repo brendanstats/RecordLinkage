@@ -1,12 +1,15 @@
 """
 Type to define the matching matrix in record linkage problem
 """
-type MatchMatrix
-    rows::Array{Int64, 1}
-    cols::Array{Int64, 1}
-    nrow::Int64
-    ncol::Int64
+type MatchMatrix{G <: Integer}
+    rows::Array{G, 1}
+    cols::Array{G, 1}
+    nrow::G
+    ncol::G
 end
+
+#Need to check
+MatchMatrix{G <: Integer}(nrow::G, ncol::G) = MatchMatrix(Array{G}(0), Array{G}(0), nrow, ncol)
 
 """
 Check if supplied row and column correspond to a match in the matching matrix
@@ -143,8 +146,13 @@ function move_matchmatrix!(M::MatchMatrix, p::AbstractFloat)
     end
 end
 
+function Base.copy(M::MatchMatrix)
+    return MatchMatrix(Base.copy(M.rows), Base.copy(M.cols), Base.copy(M.nrow), Base.copy(M.ncol))
+end
+
 function move_matchmatrix(M::MatchMatrix, p::AbstractFloat)
-    return move_matchmatrix!(MatchMatrix(copy(M.rows), copy(M.cols), copy(M.nrow), copy(M.ncol)), p)
+    #return move_matchmatrix!(MatchMatrix(copy(M.rows), copy(M.cols), copy(M.nrow), copy(M.ncol)), p)
+    return move_matchmatrix!(copy(M), p)
 end
 
 function ratio_pmove_row(M1::MatchMatrix, M2::MatchMatrix, p::AbstractFloat)
