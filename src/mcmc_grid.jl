@@ -5,7 +5,7 @@
 """
 Compute 2x2 table of data for each measure
 """
-function datatotable{G <: Integer}(data::Array{G, 3}, GM::GridArray)
+function datatotable{G <: Integer}(data::Array{G, 3}, GM::GridMatchMatrix)
     if size(data, 2) != GM.nrow
         error("second dimention of data must match number of rows in GridMatchMatrix")
     end
@@ -31,7 +31,7 @@ function datatotable{G <: Integer}(data::Array{G, 3}, GM::GridArray)
     return datatable
 end
 
-function datatotable{G <: Integer, T <: Integer}(data::Array{G, 3}, grows::Array{T, 1}, gcols::Array{T, 1}, GM::GridArray)
+function datatotable{G <: Integer, T <: Integer}(data::Array{G, 3}, grows::Array{T, 1}, gcols::Array{T, 1}, GM::GridMatchMatrix)
     if size(data, 2) != GM.nrow
         error("second dimention of data must match number of rows in GridMatchMatrix")
     end
@@ -115,13 +115,13 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
 
         #Inner iteration for M
         for mm in nM
-            propM = transitionM(currM)
+            propM, ratioM = transitionM(currM)
             #println("prop M")
             #compute a1
             a1 = exp(logpdfM(propM) + loglikelihood(currTable, propM, currU) - logpdfM(currM) - loglikelihood(currTable, currM, currU))
             #println("a1 M")
             #compute a2
-            a2 = transitionM_ratio(currM, propM)
+            a2 = ratioM
             #println("a2 M")
             if rand() < a1 * a2
                 currM = propM
@@ -131,13 +131,13 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
 
         #Inner iteration for M
         for uu in nU
-            propU = transitionU(currU)
+            propU, ratioU = transitionU(currU)
             #println("prop U")
             #compute a1
             a1 = exp(logpdfU(propU) + loglikelihood(currTable, currM, propU) - logpdfU(currU) - loglikelihood(currTable, currM, currU))
             #println("a1 U")
             #compute a2
-            a2 = transitionU_ratio(currU, propU)
+            a2 = ratioU
             #println("a2 U")
             if rand() < a1 * a2
                 currU = propU
@@ -213,13 +213,13 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
 
         #Inner iteration for M
         for mm in nM
-            propM = transitionM(currM)
+            propM, ratioM = transitionM(currM)
             #println("prop M")
             #compute a1
             a1 = exp(logpdfM(propM) + loglikelihood(currTable, propM, currU) - logpdfM(currM) - loglikelihood(currTable, currM, currU))
             #println("a1 M")
             #compute a2
-            a2 = transitionM_ratio(currM, propM)
+            a2 = ratioM
             #println("a2 M")
             if rand() < a1 * a2
                 currM = propM
@@ -229,13 +229,13 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
 
         #Inner iteration for M
         for uu in nU
-            propU = transitionU(currU)
+            propU, ratioU = transitionU(currU)
             #println("prop U")
             #compute a1
             a1 = exp(logpdfU(propU) + loglikelihood(currTable, currM, propU) - logpdfU(currU) - loglikelihood(currTable, currM, currU))
             #println("a1 U")
             #compute a2
-            a2 = transitionU_ratio(currU, propU)
+            a2 = ratioU
             #println("a2 U")
             if rand() < a1 * a2
                 currU = propU
