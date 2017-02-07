@@ -49,7 +49,7 @@ d = TruncatedPoisson(1.0, 1)
 d.tmax == 1
 d.λ == 1
 d.α == 1. / (1.0^1*exp(-1.0) / factorial(0) + 1.0^1*exp(-1.0) / factorial(1))
-params(d)
+Distributions.params(d)
 Distributions.pdf(d, 0)
 Distributions.logpdf(d, 0)
 

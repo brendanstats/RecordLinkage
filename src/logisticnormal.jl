@@ -47,7 +47,7 @@ Distributions.rand(d::LogisticNormal) = logistic(logit(d.x0) + d.σ * randn())
 
 #### Test things run, move to unit tests
 d = LogisticNormal(0.5, 1.0)
-params(d)
+Distributions.params(d)
 median(d)
 Distributions.rand(d)
 Distributions.pdf(d, 0.45351992889361753)

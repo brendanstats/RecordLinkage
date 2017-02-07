@@ -92,7 +92,9 @@ d2.α
 1.0 / (1.0 / (factorial(0) * factorial(1) * factorial(1)) + exp(-1.5) / (factorial(1) * factorial(0) * factorial(0)))
 d2.α
 
+#=
 for ii in 0:25:1000
     dens = -1.5 * ii - sum(log(1:ii)) - 2 * sum(log(1:(1000 - ii)))
     println(ii, ": ", dens)
 end
+=#

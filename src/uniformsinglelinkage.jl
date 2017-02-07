@@ -61,5 +61,5 @@ Distributions.pdf(d, MatchMatrix([1, 2, 3], [1, 2, 3], 5, 5)) == (factorial(3) *
 
 log(Distributions.pdf(d, MatchMatrix([1, 2, 3], [1, 2, 3], 5, 5))) == Distributions.logpdf(d, MatchMatrix([1, 2, 3], [1, 2, 3], 5, 5))
 
-params(d)
+Distributions.params(d)
 Distributions.rand(d)

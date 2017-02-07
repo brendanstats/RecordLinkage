@@ -27,7 +27,7 @@ end
 """
 Constructor based on Array with type of MatchMatrix, row elements  must all be same height and column elements must all be same width
 """
-function GridMatchMatrix{G <: Integer}(grid::Array{MatchMatrix, 2})
+function GridMatchMatrix{G <: Integer}(grid::Array{MatchMatrix{G}, 2})
     n, m = size(grid)
     nrows = Array{G}(n)
     ncols = Array{G}(m)
