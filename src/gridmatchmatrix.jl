@@ -25,6 +25,20 @@ function GridMatchMatrix{G <: Integer}(nrows::Array{G, 1}, ncols::Array{G, 1})
 end
 
 """
+Constructor based only on block size
+"""
+function GridMatchMatrix{G <: Integer}(nrows::Array{G, 1}, ncols::Array{G, 1}, M::MatchMatrix)
+    GM = GridMatchMatrix(nrows, ncols)
+    for ii in 1:length(M.cols)
+        grow = getgridrow(M.rows[ii], GM)
+        gcol = getgridcol(M.cols[ii], GM)
+        push!(GM.grid[grow, gcol].rows, M.rows[ii] - get(GM.cumrows, grow - 1, 0))
+        push!(GM.grid[grow, gcol].cols, M.cols[ii] - get(GM.cumcols, gcol - 1, 0))
+    end
+    return GM
+end
+
+"""
 Constructor based on Array with type of MatchMatrix, row elements  must all be same height and column elements must all be same width
 """
 function GridMatchMatrix{G <: Integer}(grid::Array{MatchMatrix{G}, 2})
@@ -198,7 +212,7 @@ function move_matchgrid{G <: Integer, T <: AbstractFloat}(grows::Array{G,1}, gco
         deleteat!(newGM.grid[grow, gcol].rows, idx)
         deleteat!(newGM.grid[grow, gcol].cols, idx)
         if rand() < p #delete
-            return newGM, p / (length(cols) - length(matchcols) + 1)
+            return newGM, p / (length(cols) - length(matchcols) + 1.0)
         else #move
             rowto = StatsBase.sample(push!(setdiff(getrows(grow, newGM), matchrows), row))
             colto = StatsBase.sample(push!(setdiff(cols, matchcols), col))
@@ -227,7 +241,7 @@ function move_matchgrid{G <: Integer, T <: AbstractFloat}(grows::Array{G,1}, gco
             gcol = getgridcol(col, GM)
             push!(newGM.grid[grow, gcol].rows, row - get(newGM.nrows, grow - 1, 0))
             push!(newGM.grid[grow, gcol].cols, col - get(newGM.ncols, gcol - 1, 0))
-            return newGM, p / (length(cols) - length(matchcols) + 1)
+            return newGM, p / (length(cols) - length(matchcols) + 1.0)
         end
     end
 end
