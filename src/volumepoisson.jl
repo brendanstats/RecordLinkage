@@ -46,7 +46,7 @@ end
 
 #### Parameters
 
-params(d::VolumePoisson) = (d.θ, d.n, d.m, d.α)
+Distributions.params(d::VolumePoisson) = (d.θ, d.n, d.m, d.α)
 @inline partype{T <: Real, G <: Integer}(d::VolumePoisson{T, G}) = (T, G)
 
 #### Statistics

@@ -21,7 +21,7 @@ end
 
 #### Parameters
 
-params(d::TruncatedPoisson) = (d.λ, d.tmax, d.α)
+Distributions.params(d::TruncatedPoisson) = (d.λ, d.tmax, d.α)
 @inline partype{T <: Real, G <: Integer}(d::TruncatedPoisson{T, G}) = (T, G)
 
 #### Statistics

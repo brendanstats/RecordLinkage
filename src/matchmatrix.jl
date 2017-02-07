@@ -14,7 +14,7 @@ MatchMatrix{G <: Integer}(nrow::G, ncol::G) = MatchMatrix(Array{G}(0), Array{G}(
 """
 Check if supplied row and column correspond to a match in the matching matrix
 """
-function in(M::MatchMatrix, row::Int64, col::Int64)
+function Base.in(M::MatchMatrix, row::Int64, col::Int64)
     if row > M.nrow || col > M.ncol
         return error("Row or column outside matrix bounds")
     end

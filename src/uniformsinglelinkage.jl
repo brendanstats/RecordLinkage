@@ -1,11 +1,6 @@
-#"""
-#Uniform distribution over single linkage matching matricies
-#"""
-
-#import StatsBase
-#import Distributions
-#include("matching_matrix.jl")
-
+"""
+Uniform distribution over single linkage matching matricies
+"""
 immutable UniformSingleLinkage{G <: Integer} <: Distributions.DiscreteMatrixDistribution
     nrow::G # Number of rows
     ncol::G # Number of columns
@@ -19,7 +14,7 @@ UniformSingleLinkage(d::Integer, t::Integer) = UniformSingleLinkage(d, d, t)
 
 #### Parameters
 
-params(d::UniformSingleLinkage) = (d.nrow, d.ncol, d.t)
+Distributions.params(d::UniformSingleLinkage) = (d.nrow, d.ncol, d.t)
 @inline partype{G<:Integer}(d::UniformSingleLinkage{G}) = G
 
 #### Evaluation

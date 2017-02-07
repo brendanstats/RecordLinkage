@@ -15,7 +15,7 @@ LogisticNormal() = LogisticNormal(0.5, 1.0)
 
 #### Parameters
 
-params(d::LogisticNormal) = (d.x0, d.σ)
+Distributions.params(d::LogisticNormal) = (d.x0, d.σ)
 @inline partype{T<:Real}(d::LogisticNormal{T}) = T
 
 #### Statistics
