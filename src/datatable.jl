@@ -18,7 +18,7 @@ function datatotable{G <: Integer}(data::Array{G, 3}, C::MatchMatrix)
 
     #number of true mathces
     nones = length(C.rows)
-    datatable = zeros(G, nmeasure, 2, 2)
+    datatable = zeros(Int64, nmeasure, 2, 2)
 
     for ii in 1:nmeasure
         #number of observed matches that are true matches 

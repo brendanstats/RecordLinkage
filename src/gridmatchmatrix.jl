@@ -197,7 +197,7 @@ end
 """
 Perform a move on the specificed elements of GridMatchMatrix
 """
-function move_matchgrid{G <: Integer, T <: AbstractFloat}(grows::Array{G,1}, gcols::Array{G,1}, GM::GridMatchMatrix, p::T)
+function move_gridmatchmatrix{G <: Integer, T <: AbstractFloat}(grows::Array{G,1}, gcols::Array{G,1}, GM::GridMatchMatrix, p::T)
     newGM = copy(GM)
     rows = getrows(grows, newGM)
     row = StatsBase.sample(rows)
@@ -206,14 +206,17 @@ function move_matchgrid{G <: Integer, T <: AbstractFloat}(grows::Array{G,1}, gco
     cols = getcols(gcols[grows .== grow], newGM)
     idx = findnext(matchrows, row)
     if idx != 0 #sampled row contains a match
+        #println(1)
         col = matchcols[idx]
         gcol = getgridcol(col, newGM)
         idx = findnext(newGM.grid[grow, gcol].rows, row - get(newGM.nrows, grow - 1, 0))
         deleteat!(newGM.grid[grow, gcol].rows, idx)
         deleteat!(newGM.grid[grow, gcol].cols, idx)
         if rand() < p #delete
+            #println(2)
             return newGM, p / (length(cols) - length(matchcols) + 1.0)
         else #move
+            #println(3)
             rowto = StatsBase.sample(push!(setdiff(getrows(grow, newGM), matchrows), row))
             colto = StatsBase.sample(push!(setdiff(cols, matchcols), col))
             gcolto = getgridcol(colto, newGM)
@@ -223,6 +226,7 @@ function move_matchgrid{G <: Integer, T <: AbstractFloat}(grows::Array{G,1}, gco
         end
     else #sampled row does not contain a match
         if length(matchcols) == length(cols) #if full move match to from different row
+            #println(4)
             idx = StatsBase.sample(1:length(matchcols))
             rowfrom = matchrows[idx]
             col = matchcols[idx]
@@ -234,9 +238,9 @@ function move_matchgrid{G <: Integer, T <: AbstractFloat}(grows::Array{G,1}, gco
             deleteat!(newGM.grid[grow, gcol].cols, idx)
             push!(newGM.grid[grow, gcol].rows, row - get(newGM.nrows, grow - 1, 0))
             push!(newGM.grid[grow, gcol].cols, col - get(newGM.ncols, gcol - 1, 0))
-            
             return newGM, 1.0
         else #add a match
+            #println(5)
             col = StatsBase.sample(setdiff(cols, matchcols))
             gcol = getgridcol(col, GM)
             push!(newGM.grid[grow, gcol].rows, row - get(newGM.nrows, grow - 1, 0))
@@ -249,7 +253,7 @@ end
 """
 Perform a move on the specificed elements of GridMatchMatrix
 """
-function move_matchgrid_exclude{G <: Integer, T <: AbstractFloat}(grows::Array{G,1}, gcols::Array{G,1}, exrows::Array{G,1}, excols::Array{G,1}, GM::GridMatchMatrix, p::T)
+function move_gridmatchmatrix_exclude{G <: Integer, T <: AbstractFloat}(grows::Array{G,1}, gcols::Array{G,1}, exrows::Array{G,1}, excols::Array{G,1}, GM::GridMatchMatrix, p::T)
     newGM = copy(GM)
     rows = getrows(grows, exrows, newGM)
     row = StatsBase.sample(rows)

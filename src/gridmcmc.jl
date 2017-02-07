@@ -45,7 +45,7 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
             propTable = datatotable(data, propGM)
             #println("prop C")
             #compute a1
-            a1 = exp(logpdfGM(propGM) + loglikelihood(propTable, currM, currU) - logpdfGM(currGM) - loglikelihood(currTable, currM, currU))
+            a1 = exp(logpdfGM(grows, gcols, propGM) + loglikelihood(propTable, currM, currU) - logpdfGM(grows, gcols, currGM) - loglikelihood(currTable, currM, currU))
             #println("a1 C")
             #compute a2
             a2 = ratioGM
@@ -146,7 +146,7 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
             propTable = datatotable(data, propGM)
             #println("prop C")
             #compute a1
-            a1 = exp(logpdfGM(propGM) + loglikelihood(propTable, currM, currU) - logpdfGM(currGM) - loglikelihood(currTable, currM, currU))
+            a1 = exp(logpdfGM(grows, gcols, propGM) + loglikelihood(propTable, currM, currU) - logpdfGM(grows, gcols, currGM) - loglikelihood(currTable, currM, currU))
             #println("a1 C")
             #compute a2
             a2 = ratioGM

@@ -19,6 +19,7 @@ export MatchMatrix,
     empty_cols,
     ratio_pmove,
     match_pairs,
+    move_matchmatrix,
     totalmatches
 
 export GridMatchMatrix,
@@ -28,8 +29,8 @@ export GridMatchMatrix,
     getcols,
     getindicies,
     getmatches,
-    move_matchgrid,
-    move_matchgrid_exclude
+    move_gridmatchmatrix,
+    move_gridmatchmatrix_exclude
     
 export simulate_singlelinkage_binary,
     gridtoarray
