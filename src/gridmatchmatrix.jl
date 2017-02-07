@@ -79,6 +79,8 @@ end
 
 """
 Return the row of the grid of MatchMatrix corresponding to supplied row index of full matrix
+
+`getgridrow(row, GM)`
 """
 function getgridrow{G <: Integer}(row::G, GM::GridMatchMatrix)
     return searchsortedfirst(GM.cumrows, row)

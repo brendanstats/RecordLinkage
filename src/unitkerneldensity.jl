@@ -108,10 +108,18 @@ end
 """
 Sample from Linearly Interpolated UnitKernelDensity
 """
-function Distributions.sample(d::UnitKernelDensity)
+function Distributions.rand(d::UnitKernelDensity)
     r = rand()
     k = searchsortedfirst(d.cdf, r)
     return (r - d.cdf[k - 1]) / (d.cdf[k] - d.cdf[k - 1]) * (d.x[k] - d.x[k - 1]) + d.x[k - 1]
+end
+
+function Distributions.rand(d::UnitKernelDensity, n::Integer)
+    out = Array{Float64}(n)
+    for ii in 1:n
+        out[ii] = Distributions.rand(d)
+    end
+    return out
 end
 
 #rfft()
