@@ -89,7 +89,7 @@ end
 """
 Method to operate on a set of points instead of evenly space points
 """
-function unitkde_slow(data::Array{Float64, 1}, points::Array{Float64, 1}, bw::Float64, θ::Float64)
+function unitkde_tilted(data::Array{Float64, 1}, points::Array{Float64, 1}, bw::Float64, θ::Float64)
     d = Distributions.Normal(θ, bw)
     y = zeros(points)
     #Compute point densities
