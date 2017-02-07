@@ -1,5 +1,8 @@
 #Example
+push!(LOAD_PATH, "/Users/Brendan/Google Drive/2016_S2_Fall/Record Linkage/code/src")
+using SequentialRecordLinkage
 
+#=
 import StatsBase
 import Distributions
 
@@ -10,7 +13,7 @@ include("../src/truncatedpoisson.jl")
 include("../src/volumepoisson.jl")
 include("../src/simrecords.jl")
 include("../src/mcmc.jl")
-
+=#
 pM = [0.8, 0.9, 0.7]
 pU = [0.08, 0.02, .05]
 srand(68259)
