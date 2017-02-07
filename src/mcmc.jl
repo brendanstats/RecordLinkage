@@ -1,32 +1,3 @@
-#table
-#  U  M
-#0
-#1
-
-function datatotable{G <: Integer}(data::Array{G, 3}, C::MatchMatrix)
-    if size(data, 2) != C.nrow
-        error("second dimention of data must match number of rows in MatchMatrix")
-    end
-    if size(data, 3) != C.ncol
-        error("third dimention of data must match number of columns in MatchMatrix")
-    end
-    nmeasure = size(data, 1)
-    nobs = length(data[1, :, :])
-    nones = length(C.rows)
-    datatable = zeros(G, nmeasure, 2, 2)
-    for ii in 1:nmeasure
-            for kk in 1:nones
-                if data[ii, C.rows[kk], C.cols[kk]] == 1
-                    datatable[ii, 2, 2] += 1
-                end
-            end
-        datatable[ii, 1, 2] = nones - datatable[ii, 2, 2]
-        datatable[ii, 2, 1] = sum(data[ii, :, :]) - datatable[ii, 2, 2]
-        datatable[ii, 1, 1] = nobs - sum(datatable[ii, :, :])
-        
-    end
-    return datatable
-end
 
 function loglikelihood_datatable{G <: Integer, T <: AbstractFloat}(datatable::Array{G, 3}, γM::Array{T, 1}, γU::Array{T, 1})
     if any(γM .< 0.0) || any(γM .> 1.0)
@@ -52,7 +23,24 @@ function loglikelihood_datatable{G <: Integer, T <: AbstractFloat}(datatable::Ar
     return loglike
 end
 
-function metropolis_hastings{G <: Integer, T <: AbstractFloat}(niter::Int64, data::Array{G, 3}, C0::MatchMatrix, M0::Array{T, 1}, U0::Array{T, 1}, logpdfC::Function, logpdfM::Function, logpdfU::Function, loglikelihood::Function, transitionC::Function, transitionMU::Function,transitionC_ratio::Function, transitionMU_ratio::Function)
+"""
+Metropolis-Hastings MCMC Algorithm for posterior distribution of a MatchMatrix
+"""
+function metropolis_hastings{G <: Integer, T <: AbstractFloat}(
+    niter::Int64,
+    data::Array{G, 3},
+    C0::MatchMatrix,
+    M0::Array{T, 1},
+    U0::Array{T, 1},
+    logpdfC::Function,
+    logpdfM::Function,
+    logpdfU::Function,
+    loglikelihood::Function,
+    transitionC::Function,
+    transitionMU::Function,
+    transitionC_ratio::Function,
+    transitionMU_ratio::Function)
+    
     CArray = Array{MatchMatrix}(niter)
     MArray = Array{eltype(M0)}(niter, length(M0))
     UArray = Array{eltype(U0)}(niter, length(U0))
@@ -96,37 +84,9 @@ function metropolis_hastings{G <: Integer, T <: AbstractFloat}(niter::Int64, dat
     return CArray, MArray, UArray
 end
 
-function countones{G <: Integer}(data::Array{G, 3})
-    out = Array{Int64}(size(data)[2:3]...)
-    for ii in eachindex(out)
-        out[ii] = sum(data[:, ii])
-    end
-    return out
-end
-
-function countones{G <: Integer, T <: AbstractFloat}(data::Array{G, 3}, weights::Array{T, 1})
-    out = Array{Int64}(size(data)[2:3]...)
-    for ii in eachindex(out)
-        out[ii] = dot(data[:, ii], weights)
-    end
-    return out
-end
-
-function totalmatches(x::Array{MatchMatrix, 1})
-    n = length(x)
-    nmatches = zeros(Int64, n)
-    for ii in 1:n
-        nmatches[ii] = length(x[ii].rows)
-    end
-    totals = zeros(Int64, x[1].nrow, x[1].ncol)
-    for c in x
-        for ii in 1:length(c.rows)
-            totals[c.rows[ii], c.cols[ii]] += 1
-        end
-    end
-    return nmatches, totals ./ n
-end
-
+"""
+Metropolis-Hastings MCMC Algorithm for posterior distribution of a MatchMatrix with independent mixing
+"""
 function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
     niter::Int64,
     data::Array{G, 3},

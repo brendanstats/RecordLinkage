@@ -42,8 +42,9 @@ function findindex(M::MatchMatrix, row::Int64, col::Int64)
     return 0
 end
 
-#findnext
-
+"""
+Add a match to MatchMatrix
+"""
 function add_match!(M::MatchMatrix, row::Int64, col::Int64; check::Bool = false)
     #check if it already exits
     if check
@@ -62,6 +63,9 @@ function add_match!(M::MatchMatrix, row::Int64, col::Int64; check::Bool = false)
     return M
 end
 
+"""
+Remove a match from a MatchMatrix
+"""
 function remove_match!(M::MatchMatrix, row::Int64, col::Int64)
     idx = findindex(M, row, col)
     #check if match exists
@@ -84,10 +88,16 @@ function convert{G <: Integer}(::Type{Array{G, 2}}, M::MatchMatrix)
     return out
 end
 
+"""
+Return rows with no matches
+"""
 function empty_rows(M::MatchMatrix)
     return setdiff(1:M.nrow, M.rows)
 end
 
+"""
+Return columns with no matches
+"""
 function empty_cols(M::MatchMatrix)
     return setdiff(1:M.ncol, M.cols)
 end
@@ -134,7 +144,9 @@ function move_matchmatrix_col!(M::MatchMatrix, p::AbstractFloat)
     return M
 end
 
-
+"""
+Move a MatchMatrix changing the structure
+"""
 function move_matchmatrix!(M::MatchMatrix, p::AbstractFloat)
     if p < 0.0 || p > 1.0
         error("p must be between 0 and 1")
@@ -146,15 +158,22 @@ function move_matchmatrix!(M::MatchMatrix, p::AbstractFloat)
     end
 end
 
-function Base.copy(M::MatchMatrix)
+function copy(M::MatchMatrix)
     return MatchMatrix(Base.copy(M.rows), Base.copy(M.cols), Base.copy(M.nrow), Base.copy(M.ncol))
 end
 
+"""
+Performs a move on a copy of a MatchMatrix changing the structure
+"""
 function move_matchmatrix(M::MatchMatrix, p::AbstractFloat)
     #return move_matchmatrix!(MatchMatrix(copy(M.rows), copy(M.cols), copy(M.nrow), copy(M.ncol)), p)
     return move_matchmatrix!(copy(M), p)
 end
 
+"""
+Find the ratio
+``\frac{g(M1|M2)}{g(M2|M1)}``
+"""
 function ratio_pmove_row(M1::MatchMatrix, M2::MatchMatrix, p::AbstractFloat)
     matchchange = length(M2.rows) - length(M1.rows)
     if matchchange == 1
@@ -168,6 +187,10 @@ function ratio_pmove_row(M1::MatchMatrix, M2::MatchMatrix, p::AbstractFloat)
     end
 end
 
+"""
+Find the ratio
+``\frac{g(M1|M2)}{g(M2|M1)}``
+"""
 function ratio_pmove_col(M1::MatchMatrix, M2::MatchMatrix, p::AbstractFloat)
     matchchange = length(M2.rows) - length(M1.rows)
     if matchchange == 1
@@ -181,6 +204,10 @@ function ratio_pmove_col(M1::MatchMatrix, M2::MatchMatrix, p::AbstractFloat)
     end
 end
 
+"""
+Find the ratio
+``\frac{g(M1|M2)}{g(M2|M1)}``
+"""
 function ratio_pmove(M1::MatchMatrix, M2::MatchMatrix, p::AbstractFloat)
     if p < 0.0 || p > 1.0
         error("p must be between 0 and 1")
@@ -195,6 +222,27 @@ function ratio_pmove(M1::MatchMatrix, M2::MatchMatrix, p::AbstractFloat)
     end
 end
 
+"""
+Return a nx2 array with the first column containing row indicies and second containing column indicies
+"""
 function match_pairs(M::MatchMatrix)
     return [M.rows M.cols]
+end
+
+"""
+Compute the total number of matches that occured in each entry of an Array of MatchMatrixies
+"""
+function totalmatches(x::Array{MatchMatrix, 1})
+    n = length(x)
+    nmatches = zeros(Int64, n)
+    for ii in 1:n
+        nmatches[ii] = length(x[ii].rows)
+    end
+    totals = zeros(Int64, x[1].nrow, x[1].ncol)
+    for c in x
+        for ii in 1:length(c.rows)
+            totals[c.rows[ii], c.cols[ii]] += 1
+        end
+    end
+    return nmatches, totals ./ n
 end

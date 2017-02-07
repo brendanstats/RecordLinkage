@@ -23,10 +23,16 @@ params(d::LogisticNormal) = (d.x0, d.σ)
 median(d::LogisticNormal) = d.x0
 
 #### Evaluation
+"""
+Logit function
+"""
 function logit(p::AbstractFloat)
     return log(p / (1.0 - p))
 end
 
+"""
+Logistic function
+"""
 function logistic(α::AbstractFloat)
     return exp(α) / (exp(α) + 1.0)
 end

@@ -1,62 +1,6 @@
-#table
-#  U  M
-#0
-#1
 """
-Compute 2x2 table of data for each measure
+Metropolis-Hastings MCMC Algorithm for posterior distribution of a grid of MatchMatricies
 """
-function datatotable{G <: Integer}(data::Array{G, 3}, GM::GridMatchMatrix)
-    if size(data, 2) != GM.nrow
-        error("second dimention of data must match number of rows in GridMatchMatrix")
-    end
-    if size(data, 3) != GM.ncol
-        error("third dimention of data must match number of columns in GridMatchMatrix")
-    end
-    nmeasure = size(data, 1)
-    matchrows, matchcols = getmatches(GM)
-    nobs = length(data[1, :, :])
-    nones = length(matchrows)
-    datatable = zeros(Int64, nmeasure, 2, 2)
-    for ii in 1:nmeasure
-            for (rr, cc) in zip(matchrows, matchcols)
-                if data[ii, rr, cc] == 1
-                    datatable[ii, 2, 2] += 1
-                end
-            end
-        #check
-        datatable[ii, 1, 2] = nones - datatable[ii, 2, 2]
-        datatable[ii, 2, 1] = sum(data[ii, :, :]) - datatable[ii, 2, 2]
-        datatable[ii, 1, 1] = nobs - sum(datatable[ii, :, :])        
-    end
-    return datatable
-end
-
-function datatotable{G <: Integer, T <: Integer}(data::Array{G, 3}, grows::Array{T, 1}, gcols::Array{T, 1}, GM::GridMatchMatrix)
-    if size(data, 2) != GM.nrow
-        error("second dimention of data must match number of rows in GridMatchMatrix")
-    end
-    if size(data, 3) != GM.ncol
-        error("third dimention of data must match number of columns in GridMatchMatrix")
-    end
-    nmeasure = size(data, 1)
-    matchrows, matchcols = getmatches(grows, gcols, GM)
-    nobs = length(data[1, :, :])
-    nones = length(matchrows)
-    datatable = zeros(Int64, nmeasure, 2, 2)
-    for ii in 1:nmeasure
-            for (rr, cc) in zip(matchrows, matchcols)
-                if data[ii, rr, cc] == 1
-                    datatable[ii, 2, 2] += 1
-                end
-            end
-        #check
-        datatable[ii, 1, 2] = nones - datatable[ii, 2, 2]
-        datatable[ii, 2, 1] = sum(data[ii, :, :]) - datatable[ii, 2, 2]
-        datatable[ii, 1, 1] = nobs - sum(datatable[ii, :, :])        
-    end
-    return datatable
-end
-
 function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
     niter::Int64,
     data::Array{G, 3},
@@ -153,6 +97,9 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
     return GMArray, MArray, UArray, transGM, transM, transU
 end
 
+"""
+Allow rows to be excluded
+"""
 function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
     niter::Int64,
     data::Array{G, 3},
