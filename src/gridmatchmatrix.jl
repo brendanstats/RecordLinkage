@@ -197,6 +197,15 @@ function getmatches(GM::GridMatchMatrix)
 end
 
 """
+Return the index of the first element in A which equals val
+`findindex(A, val)`
+similar to indexin function but for a single element
+"""
+function findindex{G <: Number}(A::Array{G, 1}, val::G)
+    return findfirst(x -> x == val, A)
+end
+
+"""
 Perform a move on the specificed elements of GridMatchMatrix
 """
 function move_gridmatchmatrix{G <: Integer, T <: AbstractFloat}(grows::Array{G,1}, gcols::Array{G,1}, GM::GridMatchMatrix, p::T)
@@ -206,12 +215,12 @@ function move_gridmatchmatrix{G <: Integer, T <: AbstractFloat}(grows::Array{G,1
     grow = getgridrow(row, newGM)
     matchrows, matchcols = getmatches(grows[grows .== grow], gcols[grows .== grow], newGM)
     cols = getcols(gcols[grows .== grow], newGM)
-    idx = findnext(matchrows, row)
+    idx = findindex(matchrows, row)
     if idx != 0 #sampled row contains a match
         #println(1)
         col = matchcols[idx]
         gcol = getgridcol(col, newGM)
-        idx = findnext(newGM.grid[grow, gcol].rows, row - get(newGM.nrows, grow - 1, 0))
+        idx = findindex(newGM.grid[grow, gcol].rows, row - get(newGM.nrows, grow - 1, 0))
         deleteat!(newGM.grid[grow, gcol].rows, idx)
         deleteat!(newGM.grid[grow, gcol].cols, idx)
         if rand() < p #delete
@@ -235,7 +244,7 @@ function move_gridmatchmatrix{G <: Integer, T <: AbstractFloat}(grows::Array{G,1
             growfrom = getgridrow(rowfrom, newGM)
             gcol = getgridcol(col, newGM)
 
-            idx = findnext(newGM.grid[growfrom, gcol].rows, rowfrom - get(newGM.nrows, growfrom - 1, 0))
+            idx = findindex(newGM.grid[growfrom, gcol].rows, rowfrom - get(newGM.nrows, growfrom - 1, 0))
             deleteat!(newGM.grid[grow, gcol].rows, idx)
             deleteat!(newGM.grid[grow, gcol].cols, idx)
             push!(newGM.grid[grow, gcol].rows, row - get(newGM.nrows, grow - 1, 0))
@@ -262,11 +271,11 @@ function move_gridmatchmatrix_exclude{G <: Integer, T <: AbstractFloat}(grows::A
     grow = getgridrow(row, newGM)
     matchrows, matchcols = getmatches(grows[grows .== grow], gcols[grows .== grow], newGM)
     cols = getcols(gcols[grows .== grow], excols, newGM)
-    idx = findnext(matchrows, row)
+    idx = findindex(matchrows, row)
     if idx != 0 #sampled row contains a match
         col = matchcols[idx]
         gcol = getgridcol(col, newGM)
-        idx = findnext(newGM.grid[grow, gcol].rows, row - get(newGM.nrows, grow - 1, 0))
+        idx = findindex(newGM.grid[grow, gcol].rows, row - get(newGM.nrows, grow - 1, 0))
         deleteat!(newGM.grid[grow, gcol].rows, idx)
         deleteat!(newGM.grid[grow, gcol].cols, idx)
         if rand() < p #delete
@@ -287,7 +296,7 @@ function move_gridmatchmatrix_exclude{G <: Integer, T <: AbstractFloat}(grows::A
             growfrom = getgridrow(rowfrom, newGM)
             gcol = getgridcol(col, newGM)
 
-            idx = findnext(newGM.grid[growfrom, gcol].rows, rowfrom - get(newGM.nrows, growfrom - 1, 0))
+            idx = findindex(newGM.grid[growfrom, gcol].rows, rowfrom - get(newGM.nrows, growfrom - 1, 0))
             deleteat!(newGM.grid[grow, gcol].rows, idx)
             deleteat!(newGM.grid[grow, gcol].cols, idx)
             push!(newGM.grid[grow, gcol].rows, row - get(newGM.nrows, grow - 1, 0))

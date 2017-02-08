@@ -21,7 +21,8 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
     nU::Int64 = 1)
     
     #MCMC Chains
-    GMArray = Array{GridMatchMatrix}(niter, length(grows))
+    #GMArray = Array{GridMatchMatrix}(niter, length(grows))
+    GMArray = Array{MatchMatrix}(niter, length(grows))
     MArray = Array{eltype(M0)}(niter, length(M0))
     UArray = Array{eltype(U0)}(niter, length(U0))
 
@@ -90,7 +91,9 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
         end
 
         #Add states to chain
-        GMArray[ii, :] = currGM
+        for jj in 1:length(grows)
+            GMArray[ii, jj] = currGM.grid[grows[jj], gcols[jj]]
+        end
         MArray[ii, :] = currM
         UArray[ii, :] = currU
     end
@@ -122,7 +125,8 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
     nU::Int64 = 1)
     
     #MCMC Chains
-    GMArray = Array{GridMatchMatrix}(niter, length(grows))
+    #GMArray = Array{GridMatchMatrix}(niter, length(grows))
+    GMArray = Array{MatchMatrix}(niter, length(grows))
     MArray = Array{eltype(M0)}(niter, length(M0))
     UArray = Array{eltype(U0)}(niter, length(U0))
 
@@ -191,7 +195,9 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
         end
 
         #Add states to chain
-        GMArray[ii, :] = currGM
+        for jj in 1:length(grows)
+            GMArray[ii, jj] = currGM.grid[grows[jj], gcols[jj]]
+        end
         MArray[ii, :] = currM
         UArray[ii, :] = currU
     end

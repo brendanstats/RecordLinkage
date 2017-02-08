@@ -81,9 +81,10 @@ function transC_ratio(M1::MatchMatrix, M2::MatchMatrix)
 end
 
 #Run standard algorithm
-niter = 1000000
+niter = 10000
 srand(48397)
-CArray, MArray, UArray, chgC, chgM, chgU = metropolis_hastings_mixing(niter,
+
+@time CArray, MArray, UArray, chgC, chgM, chgU = metropolis_hastings_mixing(niter,
                                                                       data,
                                                                       C0,
                                                                       M0,
@@ -161,6 +162,7 @@ end
 
 #Run algorithm
 srand(53177)
+
 @time S1GMArray, S1MArray, S1UArray, chgGM, chgM, chgU = metropolis_hastings_mixing(niter,
                                                                                     data,
                                                                                     [1, 2],
@@ -178,8 +180,6 @@ srand(53177)
 mean(chgM)
 mean(chgU)
 
-
-
 R"par(mfrow = c(2,3))
 plot(density($S1MArray[,1]), xlim = c(0, 1), main = 'M1')
 abline(v = $pM[1], col = 2)
@@ -195,13 +195,69 @@ plot(density($S1UArray[,3]), xlim = c(0, 1), main = 'U3')
 abline(v = $pU[3], col = 2)
 par(mfrow = c(1,1))"
 
-
-posteriorSamples = StatsBase.sample(1:niter, 5, replace = false)
-
+#Create new priors based on posteriors from previous step
 kdetiltS1M1 = unitkde_tilted(vec(S1MArray[:,1]), 512, .01, .1)
 kdetiltS1M2 = unitkde_tilted(vec(S1MArray[:,2]), 512, .01, .1)
 kdetiltS1M3 = unitkde_tilted(vec(S1MArray[:,3]), 512, .01, .1)
+function lpMS2{T <: AbstractFloat}(γM::Array{T, 1})
+    return log(unitkde_interpolate(γM[1], kdetiltS1M1)) + log(unitkde_interpolate(γM[2], kdetiltS1M2)) + log(unitkde_interpolate(γM[3], kdetiltS1M3))
+end
 
-kdetiltS1U1 = unitkde_tilted(vec(S1UArray[:,1]), 512, .01, .1)
-kdetiltS1U2 = unitkde_tilted(vec(S1UArray[:,2]), 512, .01, .1)
-kdetiltS1U3 = unitkde_tilted(vec(S1UArray[:,3]), 512, .01, .1)
+kdetiltS1U1 = unitkde_slow(vec(S1UArray[:,1]), 512, .01)
+kdetiltS1U2 = unitkde_slow(vec(S1UArray[:,2]), 512, .01)
+kdetiltS1U3 = unitkde_slow(vec(S1UArray[:,3]), 512, .01)
+function lpUS2{T <: AbstractFloat}(γU::Array{T, 1})
+    return log(unitkde_interpolate(γU[1], kdetiltS1U1)) + log(unitkde_interpolate(γU[2], kdetiltS1U2)) + log(unitkde_interpolate(γU[3], kdetiltS1U3))
+end
+
+function transGMS2{G <: Integer}(grows::Array{G, 1}, gcols::Array{G, 1}, exrows::Array{G, 1}, excols::Array{G, 1}, GM::GridMatchMatrix)
+    return move_gridmatchmatrix_exclude(grows, gcols, exrows, excols, GM, 0.5)
+end
+
+#Sample from blocked posterior
+draw = StatsBase.sample(1000:niter)
+GMS1 = GridMatchMatrix([20,20], [20,20])
+for (ii, (rr, cc)) in enumerate(zip([1, 2], [1, 2]))
+    GMS1.grid[rr, cc] = S1GMArray[draw, ii]
+end
+
+mrows, mcols = getmatches(GMS1)
+keep = map(x -> !in(x, mrows), rows) .* map(x -> !in(x, mcols), cols)
+CS20 = MatchMatrix(rows[keep], cols[keep], 40, 40)
+GMS20 = GridMatchMatrix([20,20], [20,20], CS20)
+for (ii, (rr, cc)) in enumerate(zip([1, 2], [1, 2]))
+    GMS20.grid[rr, cc] = S1GMArray[draw, ii]
+end
+
+srand(30271)
+
+@time S2GMArray, S2MArray, S2UArray, chgGM, chgM, chgU = metropolis_hastings_mixing(niter,
+                                                                                    data,
+                                                                                    [2, 1],
+                                                                                    [1, 2],
+                                                                                    mrows,
+                                                                                    mcols,
+                                                                                    GMS20,
+                                                                                    M0,
+                                                                                    U0,
+                                                                                    lpGM,
+                                                                                    lpM,
+                                                                                    lpU,
+                                                                                    loglikelihood_datatable,
+                                                                                    transGMS2,
+                                                                                    transMGrid,
+                                                                                    transUGrid)
+R"par(mfrow = c(2,3))
+plot(density($S2MArray[,1]), xlim = c(0, 1), main = 'M1')
+abline(v = $pM[1], col = 2)
+plot(density($S2MArray[,2]), xlim = c(0, 1), main = 'M2')
+abline(v = $pM[2], col = 2)
+plot(density($S2MArray[,3]), xlim = c(0, 1), main = 'M3')
+abline(v = $pM[3], col = 2)
+plot(density($S2UArray[,1]), xlim = c(0, 1), main = 'U1')
+abline(v = $pU[1], col = 2)
+plot(density($S2UArray[,2]), xlim = c(0, 1), main = 'U2')
+abline(v = $pU[2], col = 2)
+plot(density($S2UArray[,3]), xlim = c(0, 1), main = 'U3')
+abline(v = $pU[3], col = 2)
+par(mfrow = c(1,1))"
