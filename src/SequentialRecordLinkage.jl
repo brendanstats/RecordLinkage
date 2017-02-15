@@ -41,8 +41,9 @@ export datatotable,
 
 export UnitKernelDensity,
     unitkde_slow,
-    unitkde_interpolate,
     unitkde_tilted
+
+export UnitKDEMixture, beta_mode
 
 export metropolis_hastings,
     metropolis_hastings_mixing
@@ -56,6 +57,7 @@ include("uniformsinglelinkage.jl")
 include("simrecords.jl")
 include("datatable.jl")
 include("unitkerneldensity.jl")
+include("unitkdemixture.jl")
 include("mcmc.jl")
 include("gridmcmc.jl")
 

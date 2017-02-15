@@ -1,11 +1,11 @@
 """
 Define type for storing information about the results of a kernel density estimate
 """
-type UnitKernelDensity
-    x::Array{Float64, 1}
-    y::Array{Float64, 1}
-    cdf::Array{Float64, 1}
-    bw::Float64
+type UnitKernelDensity{T <: AbstractFloat}
+    x::Array{T, 1}
+    y::Array{T, 1}
+    cdf::Array{T, 1}
+    bw::T
     npoints::Int64
 end
 
@@ -22,13 +22,13 @@ function unitkde_slow(data::Array{Float64, 1}, npoints::Int64, bw::Float64)
         y[ii] = mean(Distributions.pdf(d, data .- xi))
     end
     #Compute approximate CDF
-    cdf = zeros(y)
-    cdf[1] = 0.0
+    approxcdf = zeros(y)
+    approxcdf[1] = 0.0
     for ii in 2:npoints
-        cdf[ii] = cdf[ii - 1] + 0.5 * stepsize * (y[ii] + y[ii - 1])
+        approxcdf[ii] = approxcdf[ii - 1] + 0.5 * stepsize * (y[ii] + y[ii - 1])
     end
-    N = cdf[end]^(-1.0)
-    return UnitKernelDensity(x, N .* y, N .* cdf, bw, npoints)
+    N = approxcdf[end]^(-1.0)
+    return UnitKernelDensity(x, N .* y, N .* approxcdf, bw, npoints)
 end
 
 """
@@ -41,27 +41,13 @@ function unitkde_slow(data::Array{Float64, 1}, points::Array{Float64, 1}, bw::Fl
     for (ii, xi) in enumerate(points)
         y[ii] = mean(Distributions.pdf(d, data .- xi))
     end
-    cdf = zeros(points)
+    approxcdf = zeros(points)
     #Compute approximate CDF
     for ii in 2:length(points)
-        cdf[ii] = cdf[ii - 1] + 0.5 * (points[ii] - points[ii - 1]) * (y[ii] + y[ii - 1])
+        approxcdf[ii] = approxcdf[ii - 1] + 0.5 * (points[ii] - points[ii - 1]) * (y[ii] + y[ii - 1])
     end
-    N = cdf[end]^(-1.0)
-    return UnitKernelDensity(points, N .* y, N .* cdf, bw, length(points))
-end
-
-"""
-Compute the density at a point using a normal KDE using linear interpolation
-"""
-function unitkde_interpolate(x::Float64, d::UnitKernelDensity)
-    if x < 0.0 || 1.0 < x
-        error("x must be between 0.0 and 1.0")
-    end
-    k = searchsortedfirst(d.x, x)
-    if k == 1
-        return d.y[1]
-    end
-    return (x - d.x[k - 1]) / (d.x[k] - d.x[k - 1]) * (d.y[k] - d.y[k - 1]) + d.y[k - 1]
+    N = approxcdf[end]^(-1.0)
+    return UnitKernelDensity(points, N .* y, N .* approxcdf, bw, length(points))
 end
 
 """
@@ -77,13 +63,13 @@ function unitkde_tilted(data::Array{Float64, 1}, npoints::Int64, bw::Float64, θ
         y[ii] = mean(Distributions.pdf(d, data .- xi))
     end
     #Compute approximate CDF
-    cdf = zeros(y)
-    cdf[1] = 0.0
+    approxcdf = zeros(y)
+    approxcdf[1] = 0.0
     for ii in 2:npoints
-        cdf[ii] = cdf[ii - 1] + 0.5 * stepsize * (y[ii] + y[ii - 1])
+        approxcdf[ii] = approxcdf[ii - 1] + 0.5 * stepsize * (y[ii] + y[ii - 1])
     end
-    N = cdf[end]^(-1.0)
-    return UnitKernelDensity(x, N .* y, N .* cdf, bw, npoints)
+    N = approxcdf[end]^(-1.0)
+    return UnitKernelDensity(x, N .* y, N .* approxcdf, bw, npoints)
 end
 
 """
@@ -96,13 +82,13 @@ function unitkde_tilted(data::Array{Float64, 1}, points::Array{Float64, 1}, bw::
     for (ii, xi) in enumerate(points)
         y[ii] = mean(Distributions.pdf(d, data .- xi))
     end
-    cdf = zeros(points)
+    approxcdf = zeros(points)
     #Compute approximate CDF
     for ii in 2:length(points)
-        cdf[ii] = cdf[ii - 1] + 0.5 * (points[ii] - points[ii - 1]) * (y[ii] + y[ii - 1])
+        approxcdf[ii] = approxcdf[ii - 1] + 0.5 * (points[ii] - points[ii - 1]) * (y[ii] + y[ii - 1])
     end
-    N = cdf[end]^(-1.0)
-    return UnitKernelDensity(points, N .* y, N .* cdf, bw, length(points))
+    N = approxcdf[end]^(-1.0)
+    return UnitKernelDensity(points, N .* y, N .* approxcdf, bw, length(points))
 end
 
 """
@@ -121,6 +107,21 @@ function Distributions.rand(d::UnitKernelDensity, n::Integer)
     end
     return out
 end
+
+"""
+Compute the density at a point using a normal KDE using linear interpolation
+"""
+function Distributions.pdf(d::UnitKernelDensity, x::Float64)
+    if x < 0.0 || 1.0 < x
+        error("x must be between 0.0 and 1.0")
+    end
+    k = searchsortedfirst(d.x, x)
+    if k == 1
+        return d.y[1]
+    end
+    return (x - d.x[k - 1]) / (d.x[k] - d.x[k - 1]) * (d.y[k] - d.y[k - 1]) + d.y[k - 1]
+end
+
 
 #rfft()
 #irfft()
