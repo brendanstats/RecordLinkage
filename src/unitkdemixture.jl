@@ -39,6 +39,11 @@ function Distributions.logpdf{M <: UnitKDEMixture}(ukdem::M, x::Array{Float64, 1
     return log(Distributions.pdf(ukdem, x))
 end
 
+"""
+Beta distribution parameterized by mode and concentration
+`beta_mode(ω, κ)`
+Where ``0 ≤ ω ≤ 1`` and ``κ > 2``
+"""
 function beta_mode{T <: AbstractFloat}(ω::T, κ::T)
     α = ω * (κ - 2) + 1
     β = (1 - ω) * (κ - 2) + 1
