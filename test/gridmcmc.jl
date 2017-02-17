@@ -81,7 +81,7 @@ function transC_ratio(M1::MatchMatrix, M2::MatchMatrix)
 end
 
 #Run standard algorithm
-niter = 10000
+niter = 500000
 srand(48397)
 
 @time CArray, MArray, UArray, chgC, chgM, chgU = metropolis_hastings_mixing(niter,
@@ -123,7 +123,8 @@ R"plot(density($MArray[,1]), xlim = c(0, 1), main = 'M1')
 lines($(M1kde.x), $(M1kde.y), xlim = c(0, 1), lty = 2)
 lines($(M1kdetilt.x), $(M1kdetilt.y), xlim = c(0, 1), lty = 3)
 lines(density($x2), xlim = c(0, 1), lty = 3, col = 2)
-legend('topleft', legend = c('R KDE', 'Custom KDE', 'Tilted KDE'))"
+legend('topleft', legend = c('R KDE', 'Custom KDE', 'Tilted KDE', 'Tilted KDE Samples'),
+lty = c(1, 2, 3, 3), col = c(1, 1, 1, 2))"
 
 #=
 Blocking Case
