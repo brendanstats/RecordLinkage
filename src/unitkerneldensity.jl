@@ -122,6 +122,12 @@ function Distributions.pdf(d::UnitKernelDensity, x::Float64)
     return (x - d.x[k - 1]) / (d.x[k] - d.x[k - 1]) * (d.y[k] - d.y[k - 1]) + d.y[k - 1]
 end
 
+"""
+Find mode
+"""
+function Distributions.mode(d::UnitKernelDensity)
+    return d.x[indmax(d.y)]
+end
 
 #rfft()
 #irfft()
