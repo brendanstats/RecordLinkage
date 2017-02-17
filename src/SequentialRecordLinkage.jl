@@ -48,6 +48,8 @@ export UnitKDEMixture, beta_mode
 export metropolis_hastings,
     metropolis_hastings_mixing
 
+export metropolis_hastings_twostep
+
 include("logisticnormal.jl")
 include("truncatedpoisson.jl")
 include("volumepoisson.jl")
@@ -60,5 +62,6 @@ include("unitkerneldensity.jl")
 include("unitkdemixture.jl")
 include("mcmc.jl")
 include("gridmcmc.jl")
+include("stepmcmc.jl")
 
 end
