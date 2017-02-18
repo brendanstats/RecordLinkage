@@ -27,6 +27,10 @@ Standard algorithm
 =#
 
 #Log prior density functions for probabilities
+function lpC(C::MatchMatrix)
+    return -length(C.rows) * 0.6
+end
+
 function lpM{T <: AbstractFloat}(γM::Array{T, 1})
     d = Distributions.Beta(5, 2)
     return sum(Distributions.logpdf(d, γM))
@@ -36,6 +40,73 @@ function lpU{T <: AbstractFloat}(γU::Array{T, 1})
     d = Distributions.Beta(2, 20)
     return sum(Distributions.logpdf(d, γU))
 end
+
+#Transition functions and probability ratios for standard algorithm
+function transM{T <: AbstractFloat}(probs::Array{T, 1})
+    dArray = LogisticNormal.(probs, 1.1)
+    return rand.(dArray)
+end
+
+function transM_ratio{T <: AbstractFloat}(p1::Array{T, 1}, p2::Array{T, 1})
+    if length(p1) != length(p2)
+        error("probability vector lengths must match")
+    end
+    d1 = LogisticNormal.(p1, 1.1)
+    d2 = LogisticNormal.(p2, 1.1)
+    logp = sum(Distributions.logpdf.(d2, p1)) - sum(Distributions.logpdf.(d1, p2))
+    return exp(logp)
+end
+
+function transU{T <: AbstractFloat}(probs::Array{T, 1})
+    dArray = LogisticNormal.(probs, 0.1)
+    return rand.(dArray)
+end
+
+function transU_ratio{T <: AbstractFloat}(p1::Array{T, 1}, p2::Array{T, 1})
+    if length(p1) != length(p2)
+        error("probability vector lengths must match")
+    end
+    d1 = LogisticNormal.(p1, 0.1)
+    d2 = LogisticNormal.(p2, 0.1)
+    logp = sum(Distributions.logpdf.(d2, p1)) - sum(Distributions.logpdf.(d1, p2))
+    return exp(logp)
+end
+
+function transC(C::MatchMatrix)
+    return move_matchmatrix(C, 0.5)
+end
+
+function transC_ratio(M1::MatchMatrix, M2::MatchMatrix)
+    return ratio_pmove(M1, M2, 0.5)
+end
+
+#Run standard algorithm
+niter = 1000000
+srand(48397)
+
+@time CArray, MArray, UArray, chgC, chgM, chgU = metropolis_hastings_mixing(niter,
+                                                                      data,
+                                                                      C0,
+                                                                      M0,
+                                                                      U0,
+                                                                      lpC,
+                                                                      lpM,
+                                                                      lpU,
+                                                                      loglikelihood_datatable,
+                                                                      transC,
+                                                                      transM,
+                                                                      transU,
+                                                                      transC_ratio,
+                                                                      transM_ratio,
+                                                                      transU_ratio)
+
+write_matchmatrix("singlematch_results.txt", CArray)
+write_probs("singleprob_results.txt", MArray, UArray)
+
+#=
+Step Algorithm
+=#
+
 
 #prior on the grid match matrix (just need something proportional)
 function lpGM(grows::Array{Int64, 1}, gcols::Array{Int64, 1}, GM::GridMatchMatrix)
@@ -69,7 +140,7 @@ function transUGrid{T <: AbstractFloat}(probs::Array{T, 1})
 end
 
 
-nsamples = 100
+nsamples = 1000
 niter1 = 1000000
 niter2 = 10000
 grows1 = [1, 2]
@@ -105,9 +176,10 @@ outC, outM, outU = metropolis_hastings_twostep(nsamples,
                                                nM = 1,
                                                nU = 1)
 
-write_matchmatrix("match_results.txt", outC)
-write_probs("prob_results.txt", outM, outU)
+write_matchmatrix("stepmatch_results.txt", outC)
+write_probs("stepprob_results.txt", outM, outU)
 
+#=
 nmatches, matchcounts = totalmatches(outC)
 plotdata = gridtoarray(matchcounts)
 
@@ -125,3 +197,4 @@ data = data.frame(x = $(C.cols), y = $(C.rows)))"
 
 R"table(df$count)"
 R"hist($nmatches)"
+=#
