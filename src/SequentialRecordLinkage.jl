@@ -49,6 +49,7 @@ export metropolis_hastings,
     metropolis_hastings_mixing
 
 export metropolis_hastings_twostep
+export write_matchmatrix, write_probs
 
 include("logisticnormal.jl")
 include("truncatedpoisson.jl")
@@ -63,5 +64,6 @@ include("unitkdemixture.jl")
 include("mcmc.jl")
 include("gridmcmc.jl")
 include("stepmcmc.jl")
+include("post_processing.jl")
 
 end
