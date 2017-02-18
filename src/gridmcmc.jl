@@ -110,7 +110,7 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
     gcols::Array{Int64, 1},
     exrows::Array{Int64, 1},
     excols::Array{Int64, 1},
-    GM0::GM0::GridMatchMatrix{Int64},
+    GM0::GridMatchMatrix{Int64},
     M0::Array{T, 1},
     U0::Array{T, 1},
     logpdfGM::Function,
