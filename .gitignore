@@ -1,2 +1,4 @@
 *.juliahistory
 *.pdf
+*.txt
+*.csv
