@@ -69,9 +69,9 @@ function transUGrid{T <: AbstractFloat}(probs::Array{T, 1})
 end
 
 
-nsamples = 10
-niter1 = 100000
-niter2 = 1000
+nsamples = 100
+niter1 = 1000000
+niter2 = 10000
 grows1 = [1, 2]
 gcols1 = [1, 2]
 grows2 = [1, 2]
@@ -105,11 +105,23 @@ outC, outM, outU = metropolis_hastings_twostep(nsamples,
                                                nM = 1,
                                                nU = 1)
 
-rows0, cols0 = getmatches(GM0)
+write_matchmatrix("match_results.txt", outC)
+write_probs("prob_results.txt", outM, outU)
 
-println("MCMC For First Step")
-S1GMArray, S1MArray, S1UArray, chgGM, chgM, chgU =
-    metropolis_hastings_mixing(niter1, data, grows1, gcols1, GM0, M0, U0,
-                               lpGM, lpM, lpU, loglikelihood_datatable,
-                               transGM, transMGrid, transUGrid, 1,
-                               1, 1)
+nmatches, matchcounts = totalmatches(outC)
+plotdata = gridtoarray(matchcounts)
+
+R"library(ggplot2)"
+
+@rput plotdata
+R"df <- as.data.frame(plotdata)"
+R"names(df) <- c('row', 'col', 'count')"
+
+#R"ggplot(df, aes(x = col, y = row)) + geom_raster(aes(fill = count))"
+R"ggplot(df, aes(x = col, y = row)) + geom_tile(aes(fill = count)) +
+geom_text(aes(label = count), size = 2) +
+geom_point(aes(x = x, y = y), alpha = 0.4, color = 'red',
+data = data.frame(x = $(C.cols), y = $(C.rows)))"
+
+R"table(df$count)"
+R"hist($nmatches)"
