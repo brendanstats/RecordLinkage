@@ -69,3 +69,30 @@ function write_probs{T <: AbstractFloat}(filename::String, M::Array{T, 2}, U::Ar
     end
     close(f)
 end
+
+"""
+
+"""
+function read_matchmatrix(filename::String; sep::Char = '\t', revert::Bool = false, collapse::Bool = true)
+    f = open(filename, "r")
+    raw, labels = readdlm(f, sep, header = true)
+    labels = vec(labels)
+    n, m = size(raw)
+    if m == 3
+        nrow = raw[1, 2]
+        ncol = raw[1, 3]
+        if revert
+            nout = maximum(raw[:, 1])
+            out = Array{MatchMatrix{elype(raw)}}(nout)
+            startidx
+            for ii in
+            return out
+        
+    elseif m == 2
+        nrow = raw[1, 1]
+        ncol = raw[1, 2]
+        if revert
+            return MatchMatrix(raw[2:n, 1], raw[2:n, 2], )
+        end
+    end
+end
