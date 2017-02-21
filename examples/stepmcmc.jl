@@ -179,22 +179,35 @@ outC, outM, outU = metropolis_hastings_twostep(nsamples,
 write_matchmatrix("stepmatch_results.txt", outC)
 write_probs("stepprob_results.txt", outM, outU)
 
-#=
-nmatches, matchcounts = totalmatches(outC)
-plotdata = gridtoarray(matchcounts)
+singleC, singleSamples = read_matchmatrix("singlematch_results.txt")
+stepC, stepSamples = read_matchmatrix("stepmatch_results.txt")
+
+
+singleProp = singleC ./ singleSamples
+stepProp = stepC ./ stepSamples
+
+singlePlot = gridtoarray(singleProp)
+stepPlot = gridtoarray(stepProp)
 
 R"library(ggplot2)"
 
-@rput plotdata
-R"df <- as.data.frame(plotdata)"
-R"names(df) <- c('row', 'col', 'count')"
+@rput singlePlot stepPlot
 
-#R"ggplot(df, aes(x = col, y = row)) + geom_raster(aes(fill = count))"
-R"ggplot(df, aes(x = col, y = row)) + geom_tile(aes(fill = count)) +
-geom_text(aes(label = count), size = 2) +
-geom_point(aes(x = x, y = y), alpha = 0.4, color = 'red',
-data = data.frame(x = $(C.cols), y = $(C.rows)))"
+R"df1 <- as.data.frame(singlePlot)"
+R"names(df1) <- c('row', 'col', 'proportion')"
+R"df1$type <- 'standard'"
 
-R"table(df$count)"
-R"hist($nmatches)"
-=#
+R"df2 <- as.data.frame(stepPlot)"
+R"names(df2) <- c('row', 'col', 'proportion')"
+R"df2$type <- 'step'"
+
+R"df3 <- df2"
+R"df3$proportion <- df1$proportion - df2$proportion"
+R"df3$type <- 'difference'"
+
+R"plotdf <- rbind(df1, df2)"
+
+R"pdf('comparison_stepmcmc.pdf')"
+R"ggplot(plotdf, aes(x = col, y = row)) + geom_tile(aes(fill = proportion)) + facet_wrap(~type) + geom_hline(yintercept = 20.5) + geom_vline(xintercept = 20.5) + ggtitle('Proportion of Samples with Records Linked')"
+R"ggplot(df3, aes(x = col, y = row)) + geom_tile(aes(fill = proportion)) + geom_hline(yintercept = 20.5) + geom_vline(xintercept = 20.5) + scale_fill_gradient2() + ggtitle('Standard Proportion - Step Proportion')"
+R"dev.off()"

@@ -32,24 +32,18 @@ export GridMatchMatrix,
     move_gridmatchmatrix,
     move_gridmatchmatrix_exclude
     
-export simulate_singlelinkage_binary,
-    gridtoarray
+export simulate_singlelinkage_binary, gridtoarray
 
-export datatotable,
-    loglikelihood_datatable,
-    countones
+export datatotable, loglikelihood_datatable, countones
 
-export UnitKernelDensity,
-    unitkde_slow,
-    unitkde_tilted
+export UnitKernelDensity, unitkde_slow, unitkde_tilted
 
 export UnitKDEMixture, beta_mode
 
-export metropolis_hastings,
-    metropolis_hastings_mixing
+export metropolis_hastings, metropolis_hastings_mixing
 
 export metropolis_hastings_twostep
-export write_matchmatrix, write_probs
+export write_matchmatrix, write_probs, read_matchmatrix
 
 include("logisticnormal.jl")
 include("truncatedpoisson.jl")

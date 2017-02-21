@@ -71,28 +71,65 @@ function write_probs{T <: AbstractFloat}(filename::String, M::Array{T, 2}, U::Ar
 end
 
 """
-
+Read text file created using write_matchmatrix(), present results in either summarized or
+complete form
 """
-function read_matchmatrix(filename::String; sep::Char = '\t', revert::Bool = false, collapse::Bool = true)
+function read_matchmatrix(filename::String; sep::Char = '\t', T::Type = Int64, summarize::Bool = true, revert::Bool = false)
     f = open(filename, "r")
-    raw, labels = readdlm(f, sep, header = true)
+    raw, labels = readdlm(f, sep, T, header = true)
+    close(f)
+    
     labels = vec(labels)
     n, m = size(raw)
-    if m == 3
+    if m == 3 #indicates multiple matricies were saved
         nrow = raw[1, 2]
         ncol = raw[1, 3]
-        if revert
-            nout = maximum(raw[:, 1])
-            out = Array{MatchMatrix{elype(raw)}}(nout)
-            startidx
-            for ii in
-            return out
-        
-    elseif m == 2
+        nout = Base.maximum(raw[:, 1])
+        if summarize #return totals within matrix
+            out = zeros(T, nrow, ncol)
+            ii = 1 #first row contains dimensions so exclude
+            while ii < n
+                ii += 1
+                out[raw[ii, 2], raw[ii, 3]] += 1
+            end
+            return out, nout
+        elseif revert
+            
+            startindx = Array{Int64}(nout)
+            endindx = Array{Int64}(nout)
+            startindx[raw[ii, 1]] = ii
+            endindx[raw[n, 1]] = n
+            ii = 2 #first row contains dimensions so exclude          
+            while ii < n
+                ii += 1
+                if raw[ii, 1] != raw[ii - 1, 1]
+                    startindx[raw[ii, 1]] = ii
+                    endinx[raw[ii - 1, 1]] = ii - 1
+                end
+            end
+            out = Array{MatchMatrix{T}}(nout)
+            for (ii, (ff, ll)) in enumerate(zip(startindx, endindx))
+                out[ii] = MatchMatrix(raw[ff:ll, 2], raw[ff:ll, 3], nrow, ncol)
+            end
+            return out, nout
+        else
+            return labels, raw[2:n, :], nrow, ncol
+        end
+    elseif m == 2 #indicates single matrix was saved
         nrow = raw[1, 1]
         ncol = raw[1, 2]
-        if revert
-            return MatchMatrix(raw[2:n, 1], raw[2:n, 2], )
+        if summarize
+            out = zeros(T, nrow, ncol)
+            ii = 1 #first row contains dimensions so exclude
+            while ii < n
+                ii += 1
+                out[raw[ii, 1], raw[ii, 2]] += 1
+            end
+            return out, nout
+        elseif revert
+            return MatchMatrix(raw[2:n, 1], raw[2:n, 2], nrow, ncol)
+        else
+            return labels, raw[2:n, :], nrow, ncol
         end
     end
 end
