@@ -1,26 +1,28 @@
 using SequentialRecordLinkage, RCall
 
 #Define true values and generate data
-pM = [0.8, 0.9, 0.68]
-pU = [0.15, 0.08, .45]
 srand(68259)
-C = rand(UniformSingleLinkage(40, 40, 27))
-data = simulate_singlelinkage_binary(C, pM, pU)
-database = [ones(Int8, 20, 20) zeros(Int8, 20, 20); zeros(Int8, 20, 20) ones(Int8, 20, 20)]
-nones = countones(data)
+data, C, pM, pU =  single_linkage_levels(100, 40, 40, [2, 4, 4, 5], [0.2, 0.12, 0.2, 0.05], blocking = true)
+
+nones = sum(data, 3)[:, :, 1]
 gridarray = gridtoarray(nones)
 
 #Compute reasonable intial values
-rows = gridarray[gridarray[:, 3] .== 3, 1]
-cols = gridarray[gridarray[:, 3] .== 3, 2]
-deleteat!(rows, (2, 10, 11, 12, 14, 21, 25, 26))
-deleteat!(cols, (2, 10, 11, 12, 14, 21, 25, 26))
+keep = gridarray[:, 3] .== 4
+rows = gridarray[keep, 1]
+cols = gridarray[keep, 2]
+remove = (7, 8, 9, 14, 15)
+deleteat!(rows, remove)
+deleteat!(cols, remove)
 
 #Set Initial Values
 C0 = MatchMatrix(rows, cols, 40, 40)
-M0 = [0.99, 0.99, 0.99]
-U0 = vec((sum(data, 2:3) .- length(rows)) ./ (40 * 40 - length(rows)))
-GM0 = GridMatchMatrix([20,20], [20,20], C0)
+M0 = [0.95, 0.95, 0.95]
+U0 = vec((sum(data[:, :, 2:4], 1:2) .- length(rows)) ./ (40 * 40 - length(rows)))
+
+b1rows = sum(data[:, 1, 1])
+b1cols = sum(data[1, :, 1])
+GM0 = GridMatchMatrix([b1rows, 40 - b1rows], [b1cols, 40 - b1cols], C0)
 
 #=
 Standard algorithm
@@ -28,6 +30,7 @@ Standard algorithm
 
 #Log prior density functions for probabilities
 function lpC(C::MatchMatrix)
+    #GM = GridMatchMatrix([b1rows, 40 - b1rows], [b1cols, b1cols], C)
     return -length(C.rows) * 0.6
 end
 
@@ -85,7 +88,7 @@ niter = 1000000
 srand(48397)
 
 @time CArray, MArray, UArray, chgC, chgM, chgU = metropolis_hastings_mixing(niter,
-                                                                      data,
+                                                                      data[:, :, 2:4],
                                                                       C0,
                                                                       M0,
                                                                       U0,
@@ -143,6 +146,7 @@ end
 nsamples = 1000
 niter1 = 1000000
 niter2 = 10000
+
 grows1 = [1, 2]
 gcols1 = [1, 2]
 grows2 = [1, 2]
@@ -155,7 +159,7 @@ srand(29171)
 outC, outM, outU = metropolis_hastings_twostep(nsamples,
                                                niter1,
                                                niter2,
-                                               data,
+                                               data[:, :, 2:4],
                                                grows1,
                                                gcols1,
                                                grows2,
@@ -181,7 +185,6 @@ write_probs("stepprob_results.txt", outM, outU)
 
 singleC, singleSamples = read_matchmatrix("singlematch_results.txt")
 stepC, stepSamples = read_matchmatrix("stepmatch_results.txt")
-
 
 singleProp = singleC ./ singleSamples
 stepProp = stepC ./ stepSamples
