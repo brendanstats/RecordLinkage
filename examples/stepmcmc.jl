@@ -193,6 +193,7 @@ singlePlot = gridtoarray(singleProp)
 stepPlot = gridtoarray(stepProp)
 
 R"library(ggplot2)"
+R"library(tidyr)"
 
 @rput singlePlot stepPlot
 
@@ -211,6 +212,35 @@ R"df3$type <- 'difference'"
 R"plotdf <- rbind(df1, df2)"
 
 R"pdf('comparison_stepmcmc.pdf')"
-R"ggplot(plotdf, aes(x = col, y = row)) + geom_tile(aes(fill = proportion)) + facet_wrap(~type) + geom_hline(yintercept = 20.5) + geom_vline(xintercept = 20.5) + ggtitle('Proportion of Samples with Records Linked')"
-R"ggplot(df3, aes(x = col, y = row)) + geom_tile(aes(fill = proportion)) + geom_hline(yintercept = 20.5) + geom_vline(xintercept = 20.5) + scale_fill_gradient2() + ggtitle('Standard Proportion - Step Proportion')"
+R"ggplot(plotdf, aes(x = col, y = row)) +
+ geom_tile(aes(fill = proportion)) +
+ facet_wrap(~type) +
+ geom_hline(yintercept = 20.5) +
+ geom_vline(xintercept = 20.5) +
+ ggtitle('Proportion of Samples with Records Linked')"
+
+R"ggplot(df3, aes(x = col, y = row)) +
+ geom_tile(aes(fill = proportion)) +
+ geom_hline(yintercept = 20.5) +
+ geom_vline(xintercept = 20.5) +
+ scale_fill_gradient2() +
+ ggtitle('Standard Proportion - Step Proportion') +
+ theme(plot.title = element_text(hjust = 0.5))"
 R"dev.off()"
+
+singleProbs, spLabels = readdlm("singleprob_results.txt", '\t', header = true)
+spLabels = vec(spLabels)
+spLabels = String.(spLabels)
+
+@rput spLabels
+@rput singleProbs
+R"sp.df <- as.data.frame(singleProbs)";
+R"names(sp.df) <- spLabels"
+R"sp.df <- gather(sp.df, probability, value, -index)";
+
+R"ggplot(sp.df, aes(value)) +
+ geom_density() +
+ facet_wrap(~probability, ncol = 3, scale = 'free_y') +
+ ggtitle('Posterior Distribution of Matching Probabilities\nJoint Matrix') +
+ xlab('Matching Probability') + 
+ theme(plot.title = element_text(hjust = 0.5))"
