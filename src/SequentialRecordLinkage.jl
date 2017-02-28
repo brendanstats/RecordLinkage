@@ -32,9 +32,9 @@ export GridMatchMatrix,
     move_gridmatchmatrix,
     move_gridmatchmatrix_exclude
     
-export simulate_singlelinkage_binary, gridtoarray
+export simulate_singlelinkage_binary, single_linkage_levels, gridtoarray
 
-export datatotable, loglikelihood_datatable, countones
+export data2table, loglikelihood_datatable, countones
 
 export UnitKernelDensity, unitkde_slow, unitkde_tilted
 

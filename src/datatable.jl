@@ -6,15 +6,15 @@
 """
 Compute 2x2 table of data for each measure
 """
-function datatotable{G <: Integer}(data::Array{G, 3}, C::MatchMatrix)
-    if size(data, 2) != C.nrow
+function data2table{G <: Integer}(data::BitArray{3}, C::MatchMatrix{G})
+    if size(data, 1) != C.nrow
         error("second dimention of data must match number of rows in MatchMatrix")
     end
-    if size(data, 3) != C.ncol
+    if size(data, 2) != C.ncol
         error("third dimention of data must match number of columns in MatchMatrix")
     end
-    nmeasure = size(data, 1)
-    nobs = length(data[1, :, :])
+    nmeasure = size(data, 3)
+    nobs = size(data)[1] * size(data)[2]
 
     #number of true mathces
     nones = length(C.rows)
@@ -23,14 +23,14 @@ function datatotable{G <: Integer}(data::Array{G, 3}, C::MatchMatrix)
     for ii in 1:nmeasure
         #number of observed matches that are true matches 
         for kk in 1:nones
-            if data[ii, C.rows[kk], C.cols[kk]] == 1
+            if data[C.rows[kk], C.cols[kk], ii] == 1
                 datatable[ii, 2, 2] += 1
             end
         end
         #unobserved matches = true matches - observed true matches
         datatable[ii, 1, 2] = nones - datatable[ii, 2, 2]
         #false matches = observed matches - observed true matches
-        datatable[ii, 2, 1] = sum(data[ii, :, :]) - datatable[ii, 2, 2]
+        datatable[ii, 2, 1] = sum(data[:, :, ii]) - datatable[ii, 2, 2]
         #true nonmatches = observations - other categories
         datatable[ii, 1, 1] = nobs - sum(datatable[ii, :, :])        
     end
@@ -40,56 +40,71 @@ end
 """
 Compute 2x2 table of data for each measure
 """
-function datatotable{G <: Integer}(data::Array{G, 3}, GM::GridMatchMatrix)
-    if size(data, 2) != GM.nrow
+function data2table{G <: Integer}(data::BitArray{3}, GM::GridMatchMatrix{G})
+    if size(data, 1) != GM.nrow
         error("second dimention of data must match number of rows in GridMatchMatrix")
     end
-    if size(data, 3) != GM.ncol
+    if size(data, 2) != GM.ncol
         error("third dimention of data must match number of columns in GridMatchMatrix")
     end
-    nmeasure = size(data, 1)
+    nmeasure = size(data, 3)
+    nobs = size(data)[1] * size(data)[2]
+    
     matchrows, matchcols = getmatches(GM)
-    nobs = length(data[1, :, :])
     nones = length(matchrows)
     datatable = zeros(Int64, nmeasure, 2, 2)
     for ii in 1:nmeasure
         for (rr, cc) in zip(matchrows, matchcols)
-            if data[ii, rr, cc] == 1
+            if data[rr, cc, ii] == 1
                 datatable[ii, 2, 2] += 1
             end
         end
         #unobserved matches = true matches - observed true matches
         datatable[ii, 1, 2] = nones - datatable[ii, 2, 2]
         #false matches = observed matches - observed true matches
-        datatable[ii, 2, 1] = sum(data[ii, :, :]) - datatable[ii, 2, 2]
+        datatable[ii, 2, 1] = sum(data[:, :, ii]) - datatable[ii, 2, 2]
         #true nonmatches = observations - other categories
         datatable[ii, 1, 1] = nobs - sum(datatable[ii, :, :])        
     end
     return datatable
 end
 
-function datatotable{G <: Integer, T <: Integer}(data::Array{G, 3}, grows::Array{T, 1}, gcols::Array{T, 1}, GM::GridMatchMatrix)
-    if size(data, 2) != GM.nrow
+function data2table{G <: Integer, T <: Integer}(data::BitArray{3}, grows::Array{T, 1}, gcols::Array{T, 1}, GM::GridMatchMatrix{G})
+    if size(data, 1) != GM.nrow
         error("second dimention of data must match number of rows in GridMatchMatrix")
     end
-    if size(data, 3) != GM.ncol
+    if size(data, 2) != GM.ncol
         error("third dimention of data must match number of columns in GridMatchMatrix")
     end
-    nmeasure = size(data, 1)
+    if length(grows) != length(gcols)
+        error("length of grid columns and grid rows must match")
+    end
+    nmeasure = size(data, 3)
+
+    #Compute number of observations being examined and number of ones in data
+    nobs = 0
+    dataones = zeros(Int64, nmeasure)
+    for (rr, cc) in zip(grows, gcols)
+        nobs += GM.nrows[rr] * GM.ncols[cc]
+        drows = getrows(rr, GM)
+        dcols = getcols(cc, GM)
+        dataones += vec(sum(data[drows, dcols, :], 1:2))
+    end
+    
     matchrows, matchcols = getmatches(grows, gcols, GM)
-    nobs = length(data[1, :, :])
     nones = length(matchrows)
+    
     datatable = zeros(Int64, nmeasure, 2, 2)
     for ii in 1:nmeasure
         for (rr, cc) in zip(matchrows, matchcols)
-            if data[ii, rr, cc] == 1
+            if data[rr, cc, ii] == 1
                 datatable[ii, 2, 2] += 1
             end
         end
         #unobserved matches = true matches - observed true matches
         datatable[ii, 1, 2] = nones - datatable[ii, 2, 2]
         #false matches = observed matches - observed true matches
-        datatable[ii, 2, 1] = sum(data[ii, :, :]) - datatable[ii, 2, 2]
+        datatable[ii, 2, 1] = dataones[ii] - datatable[ii, 2, 2]
         #true nonmatches = observations - other categories
         datatable[ii, 1, 1] = nobs - sum(datatable[ii, :, :])        
     end

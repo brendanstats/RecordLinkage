@@ -3,9 +3,9 @@ Metropolis-Hastings MCMC Algorithm for posterior distribution of a grid of Match
 """
 function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
     niter::Int64,
-    data::Array{G, 3},
-    grows::Array{Int64, 1},
-    gcols::Array{Int64, 1},
+    data::BitArray{3},
+    grows::Array{G, 1},
+    gcols::Array{G, 1},
     GM0::GridMatchMatrix{Int64},
     M0::Array{T, 1},
     U0::Array{T, 1},
@@ -33,7 +33,7 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
 
     #Initial States
     currGM = GM0
-    currTable = datatotable(data, grows, gcols, currGM)
+    currTable = data2table(data, grows, gcols, currGM)
     currM = M0
     currU = U0
     
@@ -43,7 +43,7 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
         #Inner iteration for GM
         for gg in 1:nGM
             propGM, ratioGM = transitionGM(grows, gcols, currGM)
-            propTable = datatotable(data, propGM)
+            propTable = data2table(data, propGM)
             #println("prop C")
             #compute a1
             a1 = exp(logpdfGM(grows, gcols, propGM) + loglikelihood(propTable, currM, currU) - logpdfGM(grows, gcols, currGM) - loglikelihood(currTable, currM, currU))
@@ -105,12 +105,12 @@ Allow rows to be excluded
 """
 function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
     niter::Int64,
-    data::Array{G, 3},
-    grows::Array{Int64, 1},
-    gcols::Array{Int64, 1},
-    exrows::Array{Int64, 1},
-    excols::Array{Int64, 1},
-    GM0::GridMatchMatrix{Int64},
+    data::BitArray{3},
+    grows::Array{G, 1},
+    gcols::Array{G, 1},
+    exrows::Array{G, 1},
+    excols::Array{G, 1},
+    GM0::GridMatchMatrix{G},
     M0::Array{T, 1},
     U0::Array{T, 1},
     logpdfGM::Function,
@@ -137,7 +137,7 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
 
     #Initial States
     currGM = GM0
-    currTable = datatotable(data, grows, gcols, currGM)
+    currTable = data2table(data, grows, gcols, currGM)
     currM = M0
     currU = U0
     
@@ -147,7 +147,7 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
         #Inner iteration for GM
         for gg in 1:nGM
             propGM, ratioGM = transitionGM(grows, gcols, exrows, excols, currGM)
-            propTable = datatotable(data, propGM)
+            propTable = data2table(data, propGM)
             #println("prop C")
             #compute a1
             a1 = exp(logpdfGM(grows, gcols, propGM) + loglikelihood(propTable, currM, currU) - logpdfGM(grows, gcols, currGM) - loglikelihood(currTable, currM, currU))

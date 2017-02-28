@@ -3,8 +3,8 @@ Metropolis-Hastings MCMC Algorithm for posterior distribution of a MatchMatrix
 """
 function metropolis_hastings{G <: Integer, T <: AbstractFloat}(
     niter::Int64,
-    data::Array{G, 3},
-    C0::MatchMatrix,
+    data::BitArray{3},
+    C0::MatchMatrix{G},
     M0::Array{T, 1},
     U0::Array{T, 1},
     logpdfC::Function,
@@ -24,14 +24,14 @@ function metropolis_hastings{G <: Integer, T <: AbstractFloat}(
     CArray[ii] = C0
     MArray[ii, :] = M0
     UArray[ii, :] = U0
-    datatable0 = datatotable(data, C0)
+    datatable0 = data2table(data, C0)
     
     logP = logpdfC(C0) + logpdfM(M0) + logpdfU(U0) + loglikelihood(datatable0, M0, U0)
 
     while ii < niter
         #draw proposal
         propC = transitionC(CArray[ii])
-        propDatatable = datatotable(data, propC)
+        propDatatable = data2table(data, propC)
         propM = transitionMU(MArray[ii, :])
         propU = transitionMU(UArray[ii, :])
 
@@ -64,8 +64,8 @@ Metropolis-Hastings MCMC Algorithm for posterior distribution of a MatchMatrix w
 """
 function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
     niter::Int64,
-    data::Array{G, 3},
-    C0::MatchMatrix,
+    data::BitArray{3},
+    C0::MatchMatrix{G},
     M0::Array{T, 1},
     U0::Array{T, 1},
     logpdfC::Function,
@@ -94,7 +94,7 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
 
     #Initial States
     currC = C0
-    currTable = datatotable(data, currC)
+    currTable = data2table(data, currC)
     currM = M0
     currU = U0
     
@@ -104,7 +104,7 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
         #Inner iteration for C
         for cc in 1:nC
             propC = transitionC(currC)
-            propTable = datatotable(data, propC)
+            propTable = data2table(data, propC)
             #println("prop C")
             #compute a1
             a1 = exp(logpdfC(propC) + loglikelihood(propTable, currM, currU) - logpdfC(currC) - loglikelihood(currTable, currM, currU))

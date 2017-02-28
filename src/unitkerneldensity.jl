@@ -14,8 +14,8 @@ Compute a KDE using a normal kernel in range 0 to 1
 """
 function unitkde_slow(data::Array{Float64, 1}, npoints::Int64, bw::Float64)
     d = Distributions.Normal(0.0, bw)
-    stepsize = (npoints - 1.0)^(-1.0)
-    x = collect(0.0:stepsize:1.0)
+    x = collect(linspace(0.0, 1.0, npoints))
+    stepsize = x[2] - x[1]
     y = Array{Float64}(npoints)
     #Compute point densities
     for (ii, xi) in enumerate(x)
@@ -55,8 +55,8 @@ Compute a KDE using a normal kernel in range 0 to 1
 """
 function unitkde_tilted(data::Array{Float64, 1}, npoints::Int64, bw::Float64, θ::Float64)
     d = Distributions.Normal(θ, bw)
-    stepsize = (npoints - 1.0)^(-1.0)
-    x = collect(0.0:stepsize:1.0)
+    x = collect(linspace(0.0, 1.0, npoints))
+    stepsize = x[2] - x[1]
     y = Array{Float64}(npoints)
     #Compute point densities
     for (ii, xi) in enumerate(x)
