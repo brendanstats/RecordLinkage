@@ -2,7 +2,7 @@ module SequentialRecordLinkage
 
 import StatsBase
 import Distributions
-import Base: convert, copy, in
+import Base: convert, copy, in, ==
 
 export LogisticNormal,
     logit,

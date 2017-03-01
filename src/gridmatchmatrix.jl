@@ -313,6 +313,10 @@ function move_gridmatchmatrix_exclude{G <: Integer, T <: AbstractFloat}(grows::A
     end
 end
 
+function =={G <: GridMatchMatrix}(GM1::G, GM2::G)
+    return all(GM1.grid .== GM2.grid)
+end
+
 #get(cumsum([1,6,3,5]), 1, 0)
 #enumerate()iterator that yields (i, x) where i is an index starting at 1, and x is the ith value from the given iterator
 #indicies

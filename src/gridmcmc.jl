@@ -43,7 +43,7 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
         #Inner iteration for GM
         for gg in 1:nGM
             propGM, ratioGM = transitionGM(grows, gcols, currGM)
-            propTable = data2table(data, propGM)
+            propTable = data2table(data, grows, gcols, propGM)
             #println("prop C")
             #compute a1
             a1 = exp(logpdfGM(grows, gcols, propGM) + loglikelihood(propTable, currM, currU) - logpdfGM(grows, gcols, currGM) - loglikelihood(currTable, currM, currU))
@@ -52,6 +52,7 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
             a2 = ratioGM
             #println("a2 C")
             if rand() < a1 * a2
+                #println("GridMatrixTransition")
                 currGM = propGM
                 currTable = propTable
                 transGM[ii] = true
@@ -91,8 +92,8 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
         end
 
         #Add states to chain
-        for jj in 1:length(grows)
-            GMArray[ii, jj] = currGM.grid[grows[jj], gcols[jj]]
+        for (jj, (rr, cc)) in enumerate(zip(grows, gcols))
+            GMArray[ii, jj] = currGM.grid[rr, cc]
         end
         MArray[ii, :] = currM
         UArray[ii, :] = currU
@@ -147,7 +148,7 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
         #Inner iteration for GM
         for gg in 1:nGM
             propGM, ratioGM = transitionGM(grows, gcols, exrows, excols, currGM)
-            propTable = data2table(data, propGM)
+            propTable = data2table(data, grows, gcols, propGM)
             #println("prop C")
             #compute a1
             a1 = exp(logpdfGM(grows, gcols, propGM) + loglikelihood(propTable, currM, currU) - logpdfGM(grows, gcols, currGM) - loglikelihood(currTable, currM, currU))
@@ -195,8 +196,8 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
         end
 
         #Add states to chain
-        for jj in 1:length(grows)
-            GMArray[ii, jj] = currGM.grid[grows[jj], gcols[jj]]
+        for (jj, (rr, cc)) in enumerate(zip(grows, gcols))
+            GMArray[ii, jj] = currGM.grid[rr, cc]
         end
         MArray[ii, :] = currM
         UArray[ii, :] = currU

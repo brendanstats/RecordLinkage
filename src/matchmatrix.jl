@@ -246,3 +246,23 @@ function totalmatches(x::Array{MatchMatrix, 1})
     end
     return nmatches, totals ./ n
 end
+
+function =={M <: MatchMatrix}(M1::M, M2::M)
+    if M1.nrow != M2.nrow
+        return false
+    elseif M1.ncol != M2.ncol
+        return false
+    elseif length(M1.rows) != length(M2.rows)
+        return false
+    else
+        perm1 = sortperm(M1.rows)
+        perm2 = sortperm(M2.rows)
+        if M1.rows[perm1] != M2.rows[perm2]
+            return false
+        elseif M1.cols[perm1] != M2.cols[perm2]
+            return false
+        else
+            return true
+        end
+    end
+end
