@@ -1,26 +1,28 @@
 using SequentialRecordLinkage, RCall
 
 #Define true values and generate data
-pM = [0.8, 0.9, 0.68]
-pU = [0.15, 0.08, .45]
 srand(68259)
-C = rand(UniformSingleLinkage(40, 40, 27))
-data = simulate_singlelinkage_binary(C, pM, pU)
-database = [ones(Int8, 20, 20) zeros(Int8, 20, 20); zeros(Int8, 20, 20) ones(Int8, 20, 20)]
-nones = countones(data)
+data, C, pM, pU =  single_linkage_levels(100, 40, 40, [2, 4, 4, 5], [0.2, 0.12, 0.2, 0.05], blocking = true)
+
+nones = sum(data, 3)[:, :, 1]
 gridarray = gridtoarray(nones)
 
 #Compute reasonable intial values
-rows = gridarray[gridarray[:, 3] .== 3, 1]
-cols = gridarray[gridarray[:, 3] .== 3, 2]
-deleteat!(rows, (2, 10, 11, 12, 14, 21, 25, 26))
-deleteat!(cols, (2, 10, 11, 12, 14, 21, 25, 26))
+keep = gridarray[:, 3] .== 4
+rows = gridarray[keep, 1]
+cols = gridarray[keep, 2]
+remove = (7, 8, 9, 14, 15)
+deleteat!(rows, remove)
+deleteat!(cols, remove)
 
 #Set Initial Values
 C0 = MatchMatrix(rows, cols, 40, 40)
-M0 = [0.99, 0.99, 0.99]
-U0 = vec((sum(data, 2:3) .- length(rows)) ./ (40 * 40 - length(rows)))
-GM0 = GridMatchMatrix([20,20], [20,20], C0)
+M0 = [0.95, 0.95, 0.95]
+U0 = vec((sum(data[:, :, 2:4], 1:2) .- length(rows)) ./ (40 * 40 - length(rows)))
+
+b1rows = sum(data[:, 1, 1])
+b1cols = sum(data[1, :, 1])
+GM0 = GridMatchMatrix([b1rows, 40 - b1rows], [b1cols, 40 - b1cols], C0)
 
 #=
 Standard algorithm
@@ -81,11 +83,11 @@ function transC_ratio(M1::MatchMatrix, M2::MatchMatrix)
 end
 
 #Run standard algorithm
-niter = 500000
+niter = 5000
 srand(48397)
 
 @time CArray, MArray, UArray, chgC, chgM, chgU = metropolis_hastings_mixing(niter,
-                                                                      data,
+                                                                      data[:, :, 2:4],
                                                                       C0,
                                                                       M0,
                                                                       U0,
@@ -162,10 +164,11 @@ function transUGrid{T <: AbstractFloat}(probs::Array{T, 1})
 end
 
 #Run algorithm
+niter = 100000
 srand(53177)
 
 @time S1GMArray, S1MArray, S1UArray, chgGM, chgM, chgU = metropolis_hastings_mixing(niter,
-                                                                                    data,
+                                                                                    data[:, :, 2:4],
                                                                                     [1, 2],
                                                                                     [1, 2],
                                                                                     GM0,
@@ -180,6 +183,29 @@ srand(53177)
                                                                                     transUGrid)
 mean(chgM)
 mean(chgU)
+mean(chgGM)
+
+datatable[1, :, :]
+datatable[2, :, :]
+datatable[3, :, :]
+
+datatable0 = data2table(data[:, :, 2:4], [1, 2], [1, 2], GM0)
+
+n = 10000
+a1 = Array{Float64}(n)
+a2 = Array{Float64}(n)
+for ii in 1:n
+    GM1, logtransition = transGM([1, 2], [1, 2], GM0)
+    datatable1 = data2table(data[:, :, 2:4], [1, 2], [1, 2], GM1)
+    #a1[ii] = exp(loglikelihood_datatable(datatable1, [0.8, 0.8, 0.8], U0) - loglikelihood_datatable(datatable0, [0.8, 0.8, 0.8], U0))
+    a1[ii] = exp(loglikelihood_datatable(datatable1, M0, U0) - loglikelihood_datatable(datatable0, M0, U0))
+    a2[ii] = exp(logtransition)
+end
+sum((a1 .* a2) .> 1.0)
+mean((a1 .* a2) .> 1.0)
+
+exp(lpGM([1, 2], [1, 2], GM1) - lpGM([1, 2], [1, 2], GM0))
+
 
 R"par(mfrow = c(2,3))
 plot(density($S1MArray[,1]), xlim = c(0, 1), main = 'M1')

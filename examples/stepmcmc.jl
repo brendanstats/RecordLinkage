@@ -30,7 +30,25 @@ Standard algorithm
 
 #Log prior density functions for probabilities
 function lpC(C::MatchMatrix)
-    #GM = GridMatchMatrix([b1rows, 40 - b1rows], [b1cols, b1cols], C)
+    L11 = 0
+    L12 = 0
+    L21 = 0
+    L22 = 0
+    for (rr, cc) in zip(C.rows, C.cols)
+        if rr <= b1rows
+            if cc <= b1cols
+                L11 += 1
+            else
+                L12 += 1
+            end
+        else
+            if cc <= b1cols
+                L21 += 1
+            else
+                L22 += 1
+            end
+        end
+    end
     return -length(C.rows) * 0.6
 end
 
@@ -106,10 +124,32 @@ srand(48397)
 write_matchmatrix("singlematch_results.txt", CArray)
 write_probs("singleprob_results.txt", MArray, UArray)
 
+srand(56969)
+
+@time FCArray, FMArray, FUArray, chgC, chgM, chgU = metropolis_hastings_mixing(niter,
+                                                                      data,
+                                                                      C0,
+                                                                      [.99; M0],
+                                                                      [0.01; U0],
+                                                                      lpC,
+                                                                      lpM,
+                                                                      lpU,
+                                                                      loglikelihood_datatable,
+                                                                      transC,
+                                                                      transM,
+                                                                      transU,
+                                                                      transC_ratio,
+                                                                      transM_ratio,
+                                                                      transU_ratio)
+
+
+write_matchmatrix("fullmatch_results.txt", FCArray)
+write_probs("fullprob_results.txt", FMArray, FUArray)
+
+
 #=
 Step Algorithm
 =#
-
 
 #prior on the grid match matrix (just need something proportional)
 function lpGM(grows::Array{Int64, 1}, gcols::Array{Int64, 1}, GM::GridMatchMatrix)
@@ -184,47 +224,50 @@ write_matchmatrix("stepmatch_results.txt", outC)
 write_probs("stepprob_results.txt", outM, outU)
 
 singleC, singleSamples = read_matchmatrix("singlematch_results.txt")
+fullC, fullSamples = read_matchmatrix("fullmatch_results.txt")
 stepC, stepSamples = read_matchmatrix("stepmatch_results.txt")
 
 singleProp = singleC ./ singleSamples
+fullProp = fullC ./ fullSamples
 stepProp = stepC ./ stepSamples
 
 singlePlot = gridtoarray(singleProp)
+fullPlot = gridtoarray(fullProp)
 stepPlot = gridtoarray(stepProp)
+
+linkPlot = hcat(singlePlot, fullPlot[:, 3], stepPlot[:, 3])
 
 R"library(ggplot2)"
 R"library(tidyr)"
+R"library(dplyr)"
 
-@rput singlePlot stepPlot
+@rput linkPlot
 
-R"df1 <- as.data.frame(singlePlot)"
-R"names(df1) <- c('row', 'col', 'proportion')"
-R"df1$type <- 'standard'"
+R"df <- as.data.frame(linkPlot)"
+R"names(df) <- c('row', 'col', 'standard', 'full', 'step')"
+R"fulldf <- mutate(df, 'standard - step' = standard - step, 'full - step' = full - step, 'standard - full' = standard - full)"
 
-R"df2 <- as.data.frame(stepPlot)"
-R"names(df2) <- c('row', 'col', 'proportion')"
-R"df2$type <- 'step'"
+R"df1 <- fulldf %>% select(row, col, standard, full, step) %>% gather(method, proportion, -row, -col)"
+R"df2 <- fulldf %>% select(row, col, contains('-')) %>% gather(method, proportion, -row, -col)"
 
-R"df3 <- df2"
-R"df3$proportion <- df1$proportion - df2$proportion"
-R"df3$type <- 'difference'"
-
-R"plotdf <- rbind(df1, df2)"
-
-R"pdf('comparison_stepmcmc.pdf')"
-R"ggplot(plotdf, aes(x = col, y = row)) +
+R"pdf('linkage_comparison_stepmcmc.pdf')"
+R"ggplot(df1, aes(x = col, y = row)) +
  geom_tile(aes(fill = proportion)) +
- facet_wrap(~type) +
- geom_hline(yintercept = 20.5) +
- geom_vline(xintercept = 20.5) +
- ggtitle('Proportion of Samples with Records Linked')"
+ geom_hline(yintercept = 21.5) +
+ geom_vline(xintercept = 23.5) +
+ scale_y_reverse() +
+ facet_wrap(~method, ncol = 3) + 
+ ggtitle('Posterior Linkage Proportions') +
+ theme(plot.title = element_text(hjust = 0.5))"
 
-R"ggplot(df3, aes(x = col, y = row)) +
+R"ggplot(df2, aes(x = col, y = row)) +
  geom_tile(aes(fill = proportion)) +
- geom_hline(yintercept = 20.5) +
- geom_vline(xintercept = 20.5) +
+ geom_hline(yintercept = 21.5) +
+ geom_vline(xintercept = 23.5) +
  scale_fill_gradient2() +
- ggtitle('Standard Proportion - Step Proportion') +
+ scale_y_reverse() +
+ facet_wrap(~method, ncol = 3) + 
+ ggtitle('Difference in Posterior Linkage Proportions') +
  theme(plot.title = element_text(hjust = 0.5))"
 R"dev.off()"
 
@@ -239,6 +282,23 @@ R"names(sp.df) <- spLabels"
 R"sp.df <- gather(sp.df, probability, value, -index)";
 
 R"ggplot(sp.df, aes(value)) +
+ geom_density() +
+ facet_wrap(~probability, ncol = 3, scale = 'free_y') +
+ ggtitle('Posterior Distribution of Matching Probabilities\nJoint Matrix') +
+ xlab('Matching Probability') + 
+ theme(plot.title = element_text(hjust = 0.5))"
+
+
+jointProbs, jointLabels = readdlm("stepprob_results.txt", '\t', header = true)
+jointLabels = vec(jointLabels)
+jointLabels = String.(jointLabels)
+
+@rput jointLabels jointProbs
+R"joint.df <- as.data.frame(jointProbs)";
+R"names(joint.df) <- jointLabels"
+R"joint.df <- gather(joint.df, probability, value, -index)";
+
+R"ggplot(joint.df, aes(value)) +
  geom_density() +
  facet_wrap(~probability, ncol = 3, scale = 'free_y') +
  ggtitle('Posterior Distribution of Matching Probabilities\nJoint Matrix') +
