@@ -197,6 +197,53 @@ function getmatches(GM::GridMatchMatrix)
 end
 
 """
+Add a match to a GridMatchMatrix
+"""
+function add_match!{G <: Integer}(GM::GridMatchMatrix{G}, grow::G, gcol::G, row::G, col::G)
+    rowadj = row - get(GM.nrows, grow - 1, 0)
+    coladj = col - get(GM.ncols, gcol - 1, 0)
+    push!(GM.grid[grow, gcol].rows, rowadj)
+    push!(GM.grid[grow, gcol].cols, coladj)
+    return GM
+end
+
+function add_match!{G <: Integer}(GM::GridMatchMatrix{G}, grows::Array{G, 1}, gcols::Array{G, 1}, rows::Array{G, 1}, cols::Array{G, 1})
+    for (gr, gc, row, col) in zip(grows, gcols, rows, cols)
+        add_match!(GM, gr, gc, row, col)
+    end
+    return GM
+end
+
+function add_match!{G <: Integer}(GM::GridMatchMatrix{G}, row::G, col::G)
+    grow = getgridrow(row, GM)
+    gcol = getgridcol(col, GM)
+    return add_match!(GM, grow, gcol, row, col)
+end
+
+function add_match!{G <: Integer}(GM::GridMatchMatrix{G}, rows::Array{G, 1}, cols::Array{G, 1})
+    for (row, col) in zip(rows, cols)
+        add_match!(GM, row, col)
+    end
+    return GM
+end
+
+function add_match{G <: Integer}(GM::GridMatchMatrix{G}, grow::G, gcol::G, row::G, col::G)
+    return add_match!(copy(GM), grow, gcol, row, col)
+end
+
+function add_match{G <: Integer}(GM::GridMatchMatrix{G}, grow::Array{G, 1}, gcol::Array{G, 1}, row::Array{G, 1}, col::Array{G, 1})
+    return add_match!(copy(GM), grow, gcol, row, col)
+end
+
+function add_match{G <: Integer}(GM::GridMatchMatrix{G}, row::G, col::G)
+    return add_match!(copy(GM), row, col)
+end
+
+function add_match{G <: Integer}(GM::GridMatchMatrix{G}, row::Array{G, 1}, col::Array{G, 1})
+    return add_match!(copy(GM), row, col)
+end
+
+"""
 Return the index of the first element in A which equals val
 `findindex(A, val)`
 similar to indexin function but for a single element
