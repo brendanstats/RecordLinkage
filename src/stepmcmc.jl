@@ -58,7 +58,7 @@ function metropolis_hastings_twostep{G <: Integer, T <: AbstractFloat}(
 
     for ii in 1:nsamples
         println("sample ", ii, " of ", nsamples)
-        
+        #=
         #Sample from posterior
         draw = StatsBase.sample(1000:niter1)
         GMS1 = GridMatchMatrix(GM0.nrows, GM0.ncols)
@@ -88,9 +88,99 @@ function metropolis_hastings_twostep{G <: Integer, T <: AbstractFloat}(
         for (jj, (rr, cc)) in enumerate(zip(grows2, gcols2))
             GMS1.grid[rr, cc] = S2GMArray[end, jj]
         end
+        
         outC[ii] = MatchMatrix(getmatches(GMS1)..., GM0.nrow, GM0.ncol)
         outM[ii, :] = S2MArray[end, :]
         outU[ii, :] = S2UArray[end, :]
+        =#
+
+        outC[ii], outM[ii, :], outU[ii, :] = conditonal_sample(
+            niter2,
+            minidx,
+            data,
+            grows1,
+            gcols1,
+            grows2,
+            gcols2,
+            S1GMArray,
+            GM0,
+            M1,
+            U1,
+            logpdfGM,
+            logpdfM2,
+            logpdfU,
+            loglikelihood,
+            transitionGM2,
+            transitionM,
+            transitionU;
+            nGM = nGM,
+            nM = nM,
+            nU = nU)
     end
     return outC, outM, outU
+end
+
+"""
+Draw a sample from Array{MatchMatrix, 2} and run conditional MCMC forward returning the last value
+"""
+function metropolis_hastings_conditonal_sample{G <: Integer, T <: AbstractFloat}(
+    minidx::Int64,
+    niter::Int64,
+    data::BitArray{3},
+    condGRows::Array{G, 1},
+    condGCols::Array{G, 1},
+    nextGRows::Array{G, 1},
+    nextGCols::Array{G, 1},
+    blockArray::Array{MatchMatrix{G}, 2},
+    GM0::GridMatchMatrix{Int64},
+    M0::Array{T, 1},
+    U0::Array{T, 1},
+    logpdfGM::Function,
+    logpdfM::Function,
+    logpdfU::Function,
+    loglikelihood::Function,
+    transitionGM::Function,
+    transitionM::Function,
+    transitionU::Function;
+    nGM::Int64 = 1,
+    nM::Int64 = 1,
+    nU::Int64 = 1)
+
+    #Sample possible indcies
+    draw = StatsBase.sample(minidx:size(blockArray, 1))
+
+    #Transfer sampled entries to starting array
+    GM = GridMatchMatrix(GM0.nrows, GM0.ncols)
+    for (jj, (rr, cc)) in enumerate(zip(condGRows, condGCols))
+        GM.grid[rr, cc] = GMArray[draw, jj]
+    end
+    exrows, excols = getmatches(GM)
+
+    #Map posterior sample to initial GridMatchMatrix
+    rows0, cols0 = getmatches(GM0)
+    #map(x -> !in(x, exrows), rows0) .* map(x -> !in(x, excols), cols0)
+    keep = ![in(rr, exrows) || in(cc, excols) for (rr, cc) in zip(exrows, excols)]
+    
+    #Set values based on draw
+    add_match!(GM, rows0[keep], cols0[keep])
+    
+    outGM, outM, outU =
+        metropolis_hastings_sample(niter,
+                                   data,
+                                   nextGRows,
+                                   nextGCols,
+                                   exrows,
+                                   excols,
+                                   GM,
+                                   M0,
+                                   U0,
+                                   logpdfGM,
+                                   logpdfM,
+                                   logpdfU,
+                                   loglikelihood_datatable,
+                                   transitionGM,
+                                   transitionM,
+                                   transitionU,
+                                   nGM = nGM, nM = nM, nU = nU)
+    outC = MatchMatrix(getmatches(outGM)..., outGM.nrow, outGM.ncol)
 end
