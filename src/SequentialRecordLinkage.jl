@@ -30,7 +30,9 @@ export GridMatchMatrix,
     getindicies,
     getmatches,
     move_gridmatchmatrix,
-    move_gridmatchmatrix_exclude
+    move_gridmatchmatrix_exclude,
+    add_match!,
+    add_match
     
 export simulate_singlelinkage_binary, single_linkage_levels, gridtoarray
 
@@ -41,9 +43,11 @@ export UnitKernelDensity, unitkde_slow, unitkde_tilted
 export UnitKDEMixture, beta_mode
 
 export metropolis_hastings, metropolis_hastings_mixing
+export metropolis_hastings_sample
 
-export metropolis_hastings_twostep
+export metropolis_hastings_twostep, conditional_sample
 export write_matchmatrix, write_probs, read_matchmatrix
+export logsum, logfactorial
 
 include("logisticnormal.jl")
 include("truncatedpoisson.jl")
@@ -59,5 +63,6 @@ include("mcmc.jl")
 include("gridmcmc.jl")
 include("stepmcmc.jl")
 include("post_processing.jl")
+include("utils.jl")
 
 end
