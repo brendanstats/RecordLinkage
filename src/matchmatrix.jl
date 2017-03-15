@@ -11,6 +11,8 @@ end
 #Need to check
 MatchMatrix{G <: Integer}(nrow::G, ncol::G) = MatchMatrix(Array{G}(0), Array{G}(0), nrow, ncol)
 
+MatchMatrix{G <: Intger}(GM::GridMatchMatrix{G}) = MatchMatrix(getmatches(GM)..., GM.nrow, GM.ncol)
+
 """
 Check if supplied row and column correspond to a match in the matching matrix
 """
