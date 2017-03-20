@@ -22,15 +22,15 @@ export MatchMatrix,
     move_matchmatrix,
     totalmatches
 
-export GridMatchMatrix,
-    getgridrow,
-    getgridcol,
+export BlockMatchMatrix,
+    getblockrow,
+    getblockcol,
     getrows,
     getcols,
     getindicies,
     getmatches,
-    move_gridmatchmatrix,
-    move_gridmatchmatrix_exclude,
+    move_blockmatchmatrix,
+    move_blockmatchmatrix_exclude,
     add_match!,
     add_match
     
@@ -54,14 +54,14 @@ include("logisticnormal.jl")
 include("truncatedpoisson.jl")
 include("volumepoisson.jl")
 include("matchmatrix.jl")
-include("gridmatchmatrix.jl")
+include("blockmatchmatrix.jl")
 include("uniformsinglelinkage.jl")
 include("simrecords.jl")
 include("datatable.jl")
 include("unitkerneldensity.jl")
 include("unitkdemixture.jl")
 include("mcmc.jl")
-include("gridmcmc.jl")
+include("blockmcmc.jl")
 include("stepmcmc.jl")
 include("post_processing.jl")
 include("single_linkage.jl")
