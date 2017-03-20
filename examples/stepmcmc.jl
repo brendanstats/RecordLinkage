@@ -2,6 +2,7 @@ using SequentialRecordLinkage, RCall
 
 #Define true values and generate data
 srand(68259)
+
 data, C, pM, pU =  single_linkage_levels(100, 40, 40, [2, 4, 4, 5], [0.2, 0.12, 0.2, 0.05], blocking = true)
 
 nones = sum(data, 3)[:, :, 1]
@@ -28,8 +29,18 @@ GM0 = GridMatchMatrix([b1rows, 40 - b1rows], [b1cols, 40 - b1cols], C0)
 Standard algorithm
 =#
 
+function marginal_logcoef{G <: Integer, T <: AbstractFloat}(l::G, nrow::G, ncol::G, θ::T)
+    if l == 0
+        return -(sum(log(nrow)) + sum(log(ncol)))
+    else
+        return -θ + log(nrow - l + 1) + log(ncol - l + 1) -log(l)
+    end
+end
+
+
 #Log prior density functions for probabilities
 function lpC(C::MatchMatrix)
+    θ = 0.6
     L11 = 0
     L12 = 0
     L21 = 0
@@ -49,7 +60,31 @@ function lpC(C::MatchMatrix)
             end
         end
     end
-    return -length(C.rows) * 0.6
+
+    #Compute normalization constant for L12
+    nrow12 = b1rows - L11
+    ncol12 = C.ncol - b1cols - L22
+    maxL12 = min(nrow12, ncol12)
+    marginalLogCoef12 = Array{Float64}(maxL12 + 1)
+    for ll in 0:maxL12
+        marginalLogCoef12[ll + 1] = marginal_logcoef(ll, nrow12, ncol12, θ)
+    end
+    logCoef12 = cumsum(marginalLogCoef12)
+    logNorm12 = logsum(logCoef12) + sum(log(1:nrow12)) + sum(log(1:ncol12))
+
+    #Compute normalization constant for L21
+    nrow21 = C.nrow - b1rows - L22
+    ncol21 = b1cols - L11
+    maxL21 = min(nrow21, ncol21)
+    marginalLogCoef21 = Array{Float64}(maxL21 + 1)
+    for ll in 0:maxL21
+        marginalLogCoef21[ll + 1] = marginal_logcoef(ll, nrow21, ncol21, θ)
+    end
+    logCoef21 = cumsum(marginalLogCoef21)
+    logNorm21 = logsum(logCoef21) + sum(log(1:nrow21)) + sum(log(1:ncol21))
+
+    #return -length(C.rows) * 0.6
+    return -length(C.rows) * θ - logNorm12 - logNorm21
 end
 
 function lpM{T <: AbstractFloat}(γM::Array{T, 1})
@@ -121,8 +156,11 @@ srand(48397)
                                                                       transM_ratio,
                                                                       transU_ratio)
 
-write_matchmatrix("singlematch_results.txt", CArray)
-write_probs("singleprob_results.txt", MArray, UArray)
+write_matchmatrix("singlematchprior_results.txt", CArray)
+write_probs("singleprobprior_results.txt", MArray, UArray)
+
+#write_matchmatrix("singlematch_results.txt", CArray)
+#write_probs("singleprob_results.txt", MArray, UArray)
 
 srand(56969)
 
@@ -223,7 +261,11 @@ outC, outM, outU = metropolis_hastings_twostep(nsamples,
 write_matchmatrix("stepmatch_results.txt", outC)
 write_probs("stepprob_results.txt", outM, outU)
 
-singleC, singleSamples = read_matchmatrix("singlematch_results.txt")
+#singleC, singleSamples = read_matchmatrix("singlematch_results.txt")
+#fullC, fullSamples = read_matchmatrix("fullmatch_results.txt")
+#stepC, stepSamples = read_matchmatrix("stepmatch_results.txt")
+
+singleC, singleSamples = read_matchmatrix("singlematchprior_results.txt")
 fullC, fullSamples = read_matchmatrix("fullmatch_results.txt")
 stepC, stepSamples = read_matchmatrix("stepmatch_results.txt")
 
@@ -258,7 +300,7 @@ R"ggplot(df1, aes(x = col, y = row)) +
  scale_y_reverse() +
  facet_wrap(~method, ncol = 3) + 
  ggtitle('Posterior Linkage Proportions') +
- theme(plot.title = element_text(hjust = 0.5))"
+ theme(plot.title = element_text(hjust = 0.5), legend.position = 'bottom')"
 
 R"ggplot(df2, aes(x = col, y = row)) +
  geom_tile(aes(fill = proportion)) +
@@ -268,7 +310,7 @@ R"ggplot(df2, aes(x = col, y = row)) +
  scale_y_reverse() +
  facet_wrap(~method, ncol = 3) + 
  ggtitle('Difference in Posterior Linkage Proportions') +
- theme(plot.title = element_text(hjust = 0.5))"
+ theme(plot.title = element_text(hjust = 0.5), legend.position = 'bottom')"
 R"dev.off()"
 
 singleProbs, spLabels = readdlm("singleprob_results.txt", '\t', header = true)
