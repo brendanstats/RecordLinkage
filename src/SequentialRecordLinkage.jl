@@ -45,8 +45,9 @@ export UnitKDEMixture, beta_mode
 export metropolis_hastings, metropolis_hastings_mixing
 export metropolis_hastings_sample
 
-export metropolis_hastings_twostep, conditional_sample
+export metropolis_hastings_twostep, metropolis_hastings_conditional_sample
 export write_matchmatrix, write_probs, read_matchmatrix
+export logcount_single_linkage, logratio_single_linkage, mode_single_linkage
 export logsum, logfactorial
 
 include("logisticnormal.jl")
@@ -63,6 +64,7 @@ include("mcmc.jl")
 include("gridmcmc.jl")
 include("stepmcmc.jl")
 include("post_processing.jl")
+include("single_linkage.jl")
 include("utils.jl")
 
 end
