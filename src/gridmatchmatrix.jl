@@ -66,6 +66,8 @@ function GridMatchMatrix{G <: Integer}(grid::Array{MatchMatrix{G}, 2})
     return GridMatchMatrix(grid, nrows, ncols, cumsum(nrows), cumsum(ncols), sum(nrows), sum(ncols))
 end
 
+MatchMatrix{G <: Integer}(GM::GridMatchMatrix{G}) = MatchMatrix(getmatches(GM)..., GM.nrow, GM.ncol)
+
 """
 Create a shallow copy of GridMatchMatrix
 """
