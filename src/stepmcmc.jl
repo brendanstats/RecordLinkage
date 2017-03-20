@@ -94,7 +94,7 @@ function metropolis_hastings_twostep{G <: Integer, T <: AbstractFloat}(
         outU[ii, :] = S2UArray[end, :]
         =#
 
-        outC[ii], outM[ii, :], outU[ii, :] = conditonal_sample(
+        outC[ii], outM[ii, :], outU[ii, :] = metropolis_hastings_conditional_sample(
             niter2,
             minidx,
             data,
@@ -112,7 +112,7 @@ function metropolis_hastings_twostep{G <: Integer, T <: AbstractFloat}(
             loglikelihood,
             transitionGM2,
             transitionM,
-            transitionU;
+            transitionU,
             nGM = nGM,
             nM = nM,
             nU = nU)
@@ -123,7 +123,7 @@ end
 """
 Draw a sample from Array{MatchMatrix, 2} and run conditional MCMC forward returning the last value
 """
-function metropolis_hastings_conditonal_sample{G <: Integer, T <: AbstractFloat}(
+function metropolis_hastings_conditional_sample{G <: Integer, T <: AbstractFloat}(
     minidx::Int64,
     niter::Int64,
     data::BitArray{3},
@@ -152,7 +152,7 @@ function metropolis_hastings_conditonal_sample{G <: Integer, T <: AbstractFloat}
     #Transfer sampled entries to starting array
     GM = GridMatchMatrix(GM0.nrows, GM0.ncols)
     for (jj, (rr, cc)) in enumerate(zip(condGRows, condGCols))
-        GM.grid[rr, cc] = GMArray[draw, jj]
+        GM.grid[rr, cc] = blockArray[draw, jj]
     end
     exrows, excols = getmatches(GM)
 
