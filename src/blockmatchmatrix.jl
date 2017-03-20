@@ -1,8 +1,8 @@
 """
 Type to hold an Array with MatchMatrix elements recording other information, intended to be used for blocking
 """
-type GridMatchMatrix{G}
-    grid::Array{MatchMatrix, 2}
+type BlockMatchMatrix{G}
+    blocks::Array{MatchMatrix{G}, 2}
     nrows::Array{G, 1}
     ncols::Array{G, 1}
     cumrows::Array{G, 1}
@@ -14,157 +14,157 @@ end
 """
 Constructor based only on block size
 """
-function GridMatchMatrix{G <: Integer}(nrows::Array{G, 1}, ncols::Array{G, 1})
-    grid = Array{MatchMatrix}(length(nrows), length(ncols))
-    for ii in eachindex(nrows)
-        for jj in eachindex(ncols)
-            grid[ii, jj] = MatchMatrix(nrows[ii], ncols[jj])
+function BlockMatchMatrix{G <: Integer}(nrows::Array{G, 1}, ncols::Array{G, 1})
+    blocks = Array{MatchMatrix}(length(nrows), length(ncols))
+    for jj in eachindex(ncols)
+        for ii in eachindex(nrows)
+            blocks[ii, jj] = MatchMatrix(nrows[ii], ncols[jj])
         end
     end
-    return GridMatchMatrix(grid, nrows, ncols, cumsum(nrows), cumsum(ncols), sum(nrows), sum(ncols))
+    return BlockMatchMatrix(blocks, nrows, ncols, cumsum(nrows), cumsum(ncols), sum(nrows), sum(ncols))
 end
 
 """
 Constructor based only on block size
 """
-function GridMatchMatrix{G <: Integer}(nrows::Array{G, 1}, ncols::Array{G, 1}, M::MatchMatrix)
-    GM = GridMatchMatrix(nrows, ncols)
+function BlockMatchMatrix{G <: Integer}(nrows::Array{G, 1}, ncols::Array{G, 1}, M::MatchMatrix)
+    BM = BlockMatchMatrix(nrows, ncols)
     for ii in 1:length(M.cols)
-        grow = getgridrow(M.rows[ii], GM)
-        gcol = getgridcol(M.cols[ii], GM)
-        push!(GM.grid[grow, gcol].rows, M.rows[ii] - get(GM.cumrows, grow - 1, 0))
-        push!(GM.grid[grow, gcol].cols, M.cols[ii] - get(GM.cumcols, gcol - 1, 0))
+        blockrow = getblockrow(M.rows[ii], BM)
+        blockcol = getblockcol(M.cols[ii], BM)
+        push!(BM.blocks[blockrow, blockcol].rows, M.rows[ii] - get(BM.cumrows, blockrow - 1, 0))
+        push!(BM.blocks[blockrow, blockcol].cols, M.cols[ii] - get(BM.cumcols, blockcol - 1, 0))
     end
-    return GM
+    return BM
 end
 
 """
 Constructor based on Array with type of MatchMatrix, row elements  must all be same height and column elements must all be same width
 """
-function GridMatchMatrix{G <: Integer}(grid::Array{MatchMatrix{G}, 2})
-    n, m = size(grid)
+function BlockMatchMatrix{G <: Integer}(blocks::Array{MatchMatrix{G}, 2})
+    n, m = size(blocks)
     nrows = Array{G}(n)
     ncols = Array{G}(m)
     #get row dimensions
     for ii in 1:n
-        nrows[ii] = grid[ii, 1].nrow
+        nrows[ii] = blocks[ii, 1].nrow
     end
     #get col dimensions
     for jj in 1:m
-        ncols[jj] = grid[1, jj].ncol
+        ncols[jj] = blocks[1, jj].ncol
     end
     for ii in 1:n
         for jj in 1:m
-            if nrows[ii] != grid[ii, jj].nrow
+            if nrows[ii] != blocks[ii, jj].nrow
                 error("dimensions of match matricies do not match within row")
             end
-            if ncols[jj] != grid[ii, jj].ncol
+            if ncols[jj] != blocks[ii, jj].ncol
                 error("dimensions of match matricies do not match within col")
             end
         end
     end
-    return GridMatchMatrix(grid, nrows, ncols, cumsum(nrows), cumsum(ncols), sum(nrows), sum(ncols))
+    return BlockMatchMatrix(blocks, nrows, ncols, cumsum(nrows), cumsum(ncols), sum(nrows), sum(ncols))
 end
 
-MatchMatrix{G <: Integer}(GM::GridMatchMatrix{G}) = MatchMatrix(getmatches(GM)..., GM.nrow, GM.ncol)
+MatchMatrix{G <: Integer}(BM::BlockMatchMatrix{G}) = MatchMatrix(getmatches(BM)..., BM.nrow, BM.ncol)
 
 """
-Create a shallow copy of GridMatchMatrix
+Create a shallow copy of BlockMatchMatrix
 """
-function Base.copy(GM::GridMatchMatrix)
-    newgrid = Array{MatchMatrix}(length(GM.nrows), length(GM.ncols))
-    for ii in eachindex(newgrid)
-        newgrid[ii] = copy(GM.grid[ii])
+function Base.copy(BM::BlockMatchMatrix)
+    newblocks = Array{MatchMatrix}(length(BM.nrows), length(BM.ncols))
+    for ii in eachindex(newblocks)
+        newblocks[ii] = copy(BM.blocks[ii])
     end
-    return GridMatchMatrix(newgrid, copy(GM.nrows), copy(GM.ncols), copy(GM.cumrows), copy(GM.cumcols), copy(GM.nrow), copy(GM.ncol))
+    return BlockMatchMatrix(newblocks, copy(BM.nrows), copy(BM.ncols), copy(BM.cumrows), copy(BM.cumcols), copy(BM.nrow), copy(BM.ncol))
 end
 
 """
 Return the row of the grid of MatchMatrix corresponding to supplied row index of full matrix
 
-`getgridrow(row, GM)`
+`getblockrow(row, BM)`
 """
-function getgridrow{G <: Integer}(row::G, GM::GridMatchMatrix)
-    return searchsortedfirst(GM.cumrows, row)
+function getblockrow{G <: Integer}(row::G, BM::BlockMatchMatrix)
+    return searchsortedfirst(BM.cumrows, row)
 end
 
 """
 Return the column of the grid of MatchMatrix corresponding to supplied column index of full matrix
 """
-function getgridcol{G <: Integer}(col::G, GM::GridMatchMatrix)
-    return searchsortedfirst(GM.cumcols, col)
+function getblockcol{G <: Integer}(col::G, BM::BlockMatchMatrix)
+    return searchsortedfirst(BM.cumcols, col)
 end
 
 """
 Return the rows of the full matrix corresponding to the given indicies
 """
-function getrows{G <: Integer}(grows::Array{G,1}, GM::GridMatchMatrix)
+function getrows{G <: Integer}(blockrows::Array{G,1}, BM::BlockMatchMatrix)
     rows = Array{G}(0)
-    for ii in unique(grows)
-        append!(rows, (get(GM.cumrows, ii - 1, 0) + 1):GM.cumrows[ii])
+    for ii in unique(blockrows)
+        append!(rows, (get(BM.cumrows, ii - 1, 0) + 1):BM.cumrows[ii])
     end
     return rows
 end
 
-function getrows{G <: Integer}(grow::G, GM::GridMatchMatrix)
-    return collect((get(GM.cumrows, grow - 1, 0) + 1):GM.cumrows[grow])
+function getrows{G <: Integer}(blockrow::G, BM::BlockMatchMatrix)
+    return collect((get(BM.cumrows, blockrow - 1, 0) + 1):BM.cumrows[blockrow])
 end
 
 """
 Return the columns of the full matrix corresponding to the given indicies
 """
-function getcols{G <: Integer}(gcols::Array{G,1}, GM::GridMatchMatrix)
+function getcols{G <: Integer}(blockcols::Array{G,1}, BM::BlockMatchMatrix)
     cols = Array{G}(0)
-    for ii in unique(gcols)
-        append!(cols, (get(GM.cumcols, ii - 1, 0) + 1):GM.cumcols[ii])
+    for ii in unique(blockcols)
+        append!(cols, (get(BM.cumcols, ii - 1, 0) + 1):BM.cumcols[ii])
     end
     return cols
 end
 
-function getcols{G <: Integer}(gcol::G, GM::GridMatchMatrix)
-    return collect((get(GM.cumcols, gcol - 1, 0) + 1):GM.cumcols[gcol])
+function getcols{G <: Integer}(blockcol::G, BM::BlockMatchMatrix)
+    return collect((get(BM.cumcols, blockcol - 1, 0) + 1):BM.cumcols[blockcol])
 end
 
 """
 Return the rows of the full matrix corresponding to the given indicies, excluding listed entries
 """
-function getrows{G <: Integer}(grows::Array{G, 1}, exrows::Array{G, 1}, GM::GridMatchMatrix)
+function getrows{G <: Integer}(blockrows::Array{G, 1}, exrows::Array{G, 1}, BM::BlockMatchMatrix)
     rows = Array{G}(0)
-    for ii in unique(grows)
-        append!(rows, (get(GM.cumrows, ii - 1, 0) + 1):GM.cumrows[ii])
+    for ii in unique(blockrows)
+        append!(rows, (get(BM.cumrows, ii - 1, 0) + 1):BM.cumrows[ii])
     end
     return setdiff(rows, exrows)
 end
 
-function getrows{G <: Integer}(grow::G, exrows::Array{G, 1}, GM::GridMatchMatrix)
-    return setdiff(collect((get(GM.cumrows, grow - 1, 0) + 1):GM.cumrows[grow]), exrows)
+function getrows{G <: Integer}(blockrow::G, exrows::Array{G, 1}, BM::BlockMatchMatrix)
+    return setdiff(collect((get(BM.cumrows, blockrow - 1, 0) + 1):BM.cumrows[blockrow]), exrows)
 end
 
 """
 Return the columns of the full matrix corresponding to the given indicies, excluding listed entries
 """
-function getcols{G <: Integer}(gcols::Array{G,1}, excols::Array{G, 1}, GM::GridMatchMatrix)
+function getcols{G <: Integer}(blockcols::Array{G,1}, excols::Array{G, 1}, BM::BlockMatchMatrix)
     cols = Array{G}(0)
-    for ii in unique(gcols)
-        append!(cols, (get(GM.cumcols, ii - 1, 0) + 1):GM.cumcols[ii])
+    for ii in unique(blockcols)
+        append!(cols, (get(BM.cumcols, ii - 1, 0) + 1):BM.cumcols[ii])
     end
     return setdiff(cols, excols)
 end
 
-function getcols{G <: Integer}(gcol::G, excols::Array{G, 1}, GM::GridMatchMatrix)
-    return setdiff(collect((get(GM.cumcols, gcol - 1, 0) + 1):GM.cumcols[gcol]), excols)
+function getcols{G <: Integer}(blockcol::G, excols::Array{G, 1}, BM::BlockMatchMatrix)
+    return setdiff(collect((get(BM.cumcols, blockcol - 1, 0) + 1):BM.cumcols[blockcol]), excols)
 end
 
 
 """
 Return the rows and columns of the full matrix corresponding to the given indicies of grid of blocks
 """
-function getindicies{G <: Integer}(grows::Array{G,1}, gcols::Array{G,1}, GM::GridMatchMatrix)
+function getindicies{G <: Integer}(blockrows::Array{G,1}, blockcols::Array{G,1}, BM::BlockMatchMatrix)
     rows = Array{G}(0)
     cols = Array{G}(0)
-    for (ii, jj) in zip(grows, gcols)
-        append!(rows, (get(GM.cumrows, ii - 1, 0) + 1):GM.cumrows[ii])
-        append!(cols, (get(GM.cumcols, jj - 1, 0) + 1):GM.cumcols[jj])
+    for (ii, jj) in zip(blockrows, blockcols)
+        append!(rows, (get(BM.cumrows, ii - 1, 0) + 1):BM.cumrows[ii])
+        append!(cols, (get(BM.cumcols, jj - 1, 0) + 1):BM.cumcols[jj])
     end
     return zip(rows, cols)
 end
@@ -172,26 +172,26 @@ end
 """
 Get columns and rows containing a match
 """
-function getmatches{G <: Integer}(grows::Array{G,1}, gcols::Array{G,1}, GM::GridMatchMatrix)
+function getmatches{G <: Integer}(blockrows::Array{G,1}, blockcols::Array{G,1}, BM::BlockMatchMatrix)
     rows = Array{G}(0)
     cols = Array{G}(0)
-    for (ii, jj) in zip(grows, gcols)
-        if length(GM.grid[ii, jj].rows) > 0
-            append!(rows, GM.grid[ii, jj].rows .+ get(GM.cumrows, ii - 1, 0))
-            append!(cols, GM.grid[ii, jj].cols .+ get(GM.cumcols, jj - 1, 0))
+    for (ii, jj) in zip(blockrows, blockcols)
+        if length(BM.blocks[ii, jj].rows) > 0
+            append!(rows, BM.blocks[ii, jj].rows .+ get(BM.cumrows, ii - 1, 0))
+            append!(cols, BM.blocks[ii, jj].cols .+ get(BM.cumcols, jj - 1, 0))
         end
     end
     return rows, cols
 end
 
-function getmatches(GM::GridMatchMatrix)
-    rows = Array{eltype(GM.grid[1,1].rows)}(0)
-    cols = Array{eltype(GM.grid[1,1].cols)}(0)
-    for ii in 1:size(GM.grid, 1)
-        for jj in 1:size(GM.grid, 2)
-            if length(GM.grid[ii, jj].rows) > 0
-                append!(rows, GM.grid[ii, jj].rows .+ get(GM.cumrows, ii - 1, 0))
-                append!(cols, GM.grid[ii, jj].cols .+ get(GM.cumcols, jj - 1, 0))
+function getmatches(BM::BlockMatchMatrix)
+    rows = Array{eltype(BM.blocks[1,1].rows)}(0)
+    cols = Array{eltype(BM.blocks[1,1].cols)}(0)
+    for ii in 1:size(BM.blocks, 1)
+        for jj in 1:size(BM.blocks, 2)
+            if length(BM.blocks[ii, jj].rows) > 0
+                append!(rows, BM.blocks[ii, jj].rows .+ get(BM.cumrows, ii - 1, 0))
+                append!(cols, BM.blocks[ii, jj].cols .+ get(BM.cumcols, jj - 1, 0))
             end
         end
     end
@@ -199,50 +199,50 @@ function getmatches(GM::GridMatchMatrix)
 end
 
 """
-Add a match to a GridMatchMatrix
+Add a match to a BlockMatchMatrix
 """
-function add_match!{G <: Integer}(GM::GridMatchMatrix{G}, grow::G, gcol::G, row::G, col::G)
-    rowadj = row - get(GM.nrows, grow - 1, 0)
-    coladj = col - get(GM.ncols, gcol - 1, 0)
-    push!(GM.grid[grow, gcol].rows, rowadj)
-    push!(GM.grid[grow, gcol].cols, coladj)
-    return GM
+function add_match!{G <: Integer}(BM::BlockMatchMatrix{G}, blockrow::G, blockcol::G, row::G, col::G)
+    rowadj = row - get(BM.nrows, blockrow - 1, 0)
+    coladj = col - get(BM.ncols, blockcol - 1, 0)
+    push!(BM.blocks[blockrow, blockcol].rows, rowadj)
+    push!(BM.blocks[blockrow, blockcol].cols, coladj)
+    return BM
 end
 
-function add_match!{G <: Integer}(GM::GridMatchMatrix{G}, grows::Array{G, 1}, gcols::Array{G, 1}, rows::Array{G, 1}, cols::Array{G, 1})
-    for (gr, gc, row, col) in zip(grows, gcols, rows, cols)
-        add_match!(GM, gr, gc, row, col)
+function add_match!{G <: Integer}(BM::BlockMatchMatrix{G}, blockrows::Array{G, 1}, blockcols::Array{G, 1}, rows::Array{G, 1}, cols::Array{G, 1})
+    for (gr, gc, row, col) in zip(blockrows, blockcols, rows, cols)
+        add_match!(BM, gr, gc, row, col)
     end
-    return GM
+    return BM
 end
 
-function add_match!{G <: Integer}(GM::GridMatchMatrix{G}, row::G, col::G)
-    grow = getgridrow(row, GM)
-    gcol = getgridcol(col, GM)
-    return add_match!(GM, grow, gcol, row, col)
+function add_match!{G <: Integer}(BM::BlockMatchMatrix{G}, row::G, col::G)
+    blockrow = getblockrow(row, BM)
+    blockcol = getblockcol(col, BM)
+    return add_match!(BM, blockrow, blockcol, row, col)
 end
 
-function add_match!{G <: Integer}(GM::GridMatchMatrix{G}, rows::Array{G, 1}, cols::Array{G, 1})
+function add_match!{G <: Integer}(BM::BlockMatchMatrix{G}, rows::Array{G, 1}, cols::Array{G, 1})
     for (row, col) in zip(rows, cols)
-        add_match!(GM, row, col)
+        add_match!(BM, row, col)
     end
-    return GM
+    return BM
 end
 
-function add_match{G <: Integer}(GM::GridMatchMatrix{G}, grow::G, gcol::G, row::G, col::G)
-    return add_match!(copy(GM), grow, gcol, row, col)
+function add_match{G <: Integer}(BM::BlockMatchMatrix{G}, blockrow::G, blockcol::G, row::G, col::G)
+    return add_match!(copy(BM), blockrow, blockcol, row, col)
 end
 
-function add_match{G <: Integer}(GM::GridMatchMatrix{G}, grow::Array{G, 1}, gcol::Array{G, 1}, row::Array{G, 1}, col::Array{G, 1})
-    return add_match!(copy(GM), grow, gcol, row, col)
+function add_match{G <: Integer}(BM::BlockMatchMatrix{G}, blockrow::Array{G, 1}, blockcol::Array{G, 1}, row::Array{G, 1}, col::Array{G, 1})
+    return add_match!(copy(BM), blockrow, blockcol, row, col)
 end
 
-function add_match{G <: Integer}(GM::GridMatchMatrix{G}, row::G, col::G)
-    return add_match!(copy(GM), row, col)
+function add_match{G <: Integer}(BM::BlockMatchMatrix{G}, row::G, col::G)
+    return add_match!(copy(BM), row, col)
 end
 
-function add_match{G <: Integer}(GM::GridMatchMatrix{G}, row::Array{G, 1}, col::Array{G, 1})
-    return add_match!(copy(GM), row, col)
+function add_match{G <: Integer}(BM::BlockMatchMatrix{G}, row::Array{G, 1}, col::Array{G, 1})
+    return add_match!(copy(BM), row, col)
 end
 
 """
@@ -255,34 +255,34 @@ function findindex{G <: Number}(A::Array{G, 1}, val::G)
 end
 
 """
-Perform a move on the specificed elements of GridMatchMatrix
+Perform a move on the specificed elements of BlockMatchMatrix
 """
-function move_gridmatchmatrix{G <: Integer, T <: AbstractFloat}(grows::Array{G,1}, gcols::Array{G,1}, GM::GridMatchMatrix, p::T)
-    newGM = copy(GM)
-    rows = getrows(grows, newGM)
+function move_blockmatchmatrix{G <: Integer, T <: AbstractFloat}(blockrows::Array{G,1}, blockcols::Array{G,1}, BM::BlockMatchMatrix, p::T)
+    newBM = copy(BM)
+    rows = getrows(blockrows, newBM)
     row = StatsBase.sample(rows)
-    grow = getgridrow(row, newGM)
-    matchrows, matchcols = getmatches(grows[grows .== grow], gcols[grows .== grow], newGM)
-    cols = getcols(gcols[grows .== grow], newGM)
+    blockrow = getblockrow(row, newBM)
+    matchrows, matchcols = getmatches(blockrows[blockrows .== blockrow], blockcols[blockrows .== blockrow], newBM)
+    cols = getcols(blockcols[blockrows .== blockrow], newBM)
     idx = findindex(matchrows, row)
     if idx != 0 #sampled row contains a match
         #println(1)
         col = matchcols[idx]
-        gcol = getgridcol(col, newGM)
-        idx = findindex(newGM.grid[grow, gcol].rows, row - get(newGM.nrows, grow - 1, 0))
-        deleteat!(newGM.grid[grow, gcol].rows, idx)
-        deleteat!(newGM.grid[grow, gcol].cols, idx)
+        blockcol = getblockcol(col, newBM)
+        idx = findindex(newBM.blocks[blockrow, blockcol].rows, row - get(newBM.nrows, blockrow - 1, 0))
+        deleteat!(newBM.blocks[blockrow, blockcol].rows, idx)
+        deleteat!(newBM.blocks[blockrow, blockcol].cols, idx)
         if rand() < p #delete
             #println(2)
-            return newGM, p / (length(cols) - length(matchcols) + 1.0)
+            return newBM, p / (length(cols) - length(matchcols) + 1.0)
         else #move
             #println(3)
-            rowto = StatsBase.sample(push!(setdiff(getrows(grow, newGM), matchrows), row))
+            rowto = StatsBase.sample(push!(setdiff(getrows(blockrow, newBM), matchrows), row))
             colto = StatsBase.sample(push!(setdiff(cols, matchcols), col))
-            gcolto = getgridcol(colto, newGM)
-            push!(newGM.grid[grow, gcolto].rows, rowto - get(newGM.nrows, grow - 1, 0))
-            push!(newGM.grid[grow, gcolto].cols, colto - get(newGM.ncols, gcolto - 1, 0))
-            return newGM, 1.0
+            blockcolto = getblockcol(colto, newBM)
+            push!(newBM.blocks[blockrow, blockcolto].rows, rowto - get(newBM.nrows, blockrow - 1, 0))
+            push!(newBM.blocks[blockrow, blockcolto].cols, colto - get(newBM.ncols, blockcolto - 1, 0))
+            return newBM, 1.0
         end
     else #sampled row does not contain a match
         if length(matchcols) == length(cols) #if full move match to from different row
@@ -290,80 +290,80 @@ function move_gridmatchmatrix{G <: Integer, T <: AbstractFloat}(grows::Array{G,1
             idx = StatsBase.sample(1:length(matchcols))
             rowfrom = matchrows[idx]
             col = matchcols[idx]
-            growfrom = getgridrow(rowfrom, newGM)
-            gcol = getgridcol(col, newGM)
+            blockrowfrom = getblockrow(rowfrom, newBM)
+            blockcol = getblockcol(col, newBM)
 
-            idx = findindex(newGM.grid[growfrom, gcol].rows, rowfrom - get(newGM.nrows, growfrom - 1, 0))
-            deleteat!(newGM.grid[grow, gcol].rows, idx)
-            deleteat!(newGM.grid[grow, gcol].cols, idx)
-            push!(newGM.grid[grow, gcol].rows, row - get(newGM.nrows, grow - 1, 0))
-            push!(newGM.grid[grow, gcol].cols, col - get(newGM.ncols, gcol - 1, 0))
-            return newGM, 1.0
+            idx = findindex(newBM.blocks[blockrowfrom, blockcol].rows, rowfrom - get(newBM.nrows, blockrowfrom - 1, 0))
+            deleteat!(newBM.blocks[blockrow, blockcol].rows, idx)
+            deleteat!(newBM.blocks[blockrow, blockcol].cols, idx)
+            push!(newBM.blocks[blockrow, blockcol].rows, row - get(newBM.nrows, blockrow - 1, 0))
+            push!(newBM.blocks[blockrow, blockcol].cols, col - get(newBM.ncols, blockcol - 1, 0))
+            return newBM, 1.0
         else #add a match
             #println(5)
             col = StatsBase.sample(setdiff(cols, matchcols))
-            gcol = getgridcol(col, GM)
-            push!(newGM.grid[grow, gcol].rows, row - get(newGM.nrows, grow - 1, 0))
-            push!(newGM.grid[grow, gcol].cols, col - get(newGM.ncols, gcol - 1, 0))
-            return newGM, p / (length(cols) - length(matchcols) + 1.0)
+            blockcol = getblockcol(col, BM)
+            push!(newBM.blocks[blockrow, blockcol].rows, row - get(newBM.nrows, blockrow - 1, 0))
+            push!(newBM.blocks[blockrow, blockcol].cols, col - get(newBM.ncols, blockcol - 1, 0))
+            return newBM, p / (length(cols) - length(matchcols) + 1.0)
         end
     end
 end
 
 """
-Perform a move on the specificed elements of GridMatchMatrix
+Perform a move on the specificed elements of BlockMatchMatrix
 """
-function move_gridmatchmatrix_exclude{G <: Integer, T <: AbstractFloat}(grows::Array{G,1}, gcols::Array{G,1}, exrows::Array{G,1}, excols::Array{G,1}, GM::GridMatchMatrix, p::T)
-    newGM = copy(GM)
-    rows = getrows(grows, exrows, newGM)
+function move_blockmatchmatrix_exclude{G <: Integer, T <: AbstractFloat}(blockrows::Array{G,1}, blockcols::Array{G,1}, exrows::Array{G,1}, excols::Array{G,1}, BM::BlockMatchMatrix, p::T)
+    newBM = copy(BM)
+    rows = getrows(blockrows, exrows, newBM)
     row = StatsBase.sample(rows)
-    grow = getgridrow(row, newGM)
-    matchrows, matchcols = getmatches(grows[grows .== grow], gcols[grows .== grow], newGM)
-    cols = getcols(gcols[grows .== grow], excols, newGM)
+    blockrow = getblockrow(row, newBM)
+    matchrows, matchcols = getmatches(blockrows[blockrows .== blockrow], blockcols[blockrows .== blockrow], newBM)
+    cols = getcols(blockcols[blockrows .== blockrow], excols, newBM)
     idx = findindex(matchrows, row)
     if idx != 0 #sampled row contains a match
         col = matchcols[idx]
-        gcol = getgridcol(col, newGM)
-        idx = findindex(newGM.grid[grow, gcol].rows, row - get(newGM.nrows, grow - 1, 0))
-        deleteat!(newGM.grid[grow, gcol].rows, idx)
-        deleteat!(newGM.grid[grow, gcol].cols, idx)
+        blockcol = getblockcol(col, newBM)
+        idx = findindex(newBM.blocks[blockrow, blockcol].rows, row - get(newBM.nrows, blockrow - 1, 0))
+        deleteat!(newBM.blocks[blockrow, blockcol].rows, idx)
+        deleteat!(newBM.blocks[blockrow, blockcol].cols, idx)
         if rand() < p #delete
-            return newGM, p / (length(cols) - length(matchcols) + 1)
+            return newBM, p / (length(cols) - length(matchcols) + 1)
         else #move
-            rowto = StatsBase.sample(push!(setdiff(getrows(grow, exrows, newGM), matchrows), row))
+            rowto = StatsBase.sample(push!(setdiff(getrows(blockrow, exrows, newBM), matchrows), row))
             colto = StatsBase.sample(push!(setdiff(cols, matchcols), col))
-            gcolto = getgridcol(colto, newGM)
-            push!(newGM.grid[grow, gcolto].rows, rowto - get(newGM.nrows, grow - 1, 0))
-            push!(newGM.grid[grow, gcolto].cols, colto - get(newGM.ncols, gcolto - 1, 0))
-            return newGM, 1.0
+            blockcolto = getblockcol(colto, newBM)
+            push!(newBM.blocks[blockrow, blockcolto].rows, rowto - get(newBM.nrows, blockrow - 1, 0))
+            push!(newBM.blocks[blockrow, blockcolto].cols, colto - get(newBM.ncols, blockcolto - 1, 0))
+            return newBM, 1.0
         end
     else #sampled row does not contain a match
         if length(matchcols) == length(cols) #if full move match to from different row
             idx = StatsBase.sample(1:length(matchcols))
             rowfrom = matchrows[idx]
             col = matchcols[idx]
-            growfrom = getgridrow(rowfrom, newGM)
-            gcol = getgridcol(col, newGM)
+            blockrowfrom = getblockrow(rowfrom, newBM)
+            blockcol = getblockcol(col, newBM)
 
-            idx = findindex(newGM.grid[growfrom, gcol].rows, rowfrom - get(newGM.nrows, growfrom - 1, 0))
-            deleteat!(newGM.grid[grow, gcol].rows, idx)
-            deleteat!(newGM.grid[grow, gcol].cols, idx)
-            push!(newGM.grid[grow, gcol].rows, row - get(newGM.nrows, grow - 1, 0))
-            push!(newGM.grid[grow, gcol].cols, col - get(newGM.ncols, gcol - 1, 0))
+            idx = findindex(newBM.blocks[blockrowfrom, blockcol].rows, rowfrom - get(newBM.nrows, blockrowfrom - 1, 0))
+            deleteat!(newBM.blocks[blockrow, blockcol].rows, idx)
+            deleteat!(newBM.blocks[blockrow, blockcol].cols, idx)
+            push!(newBM.blocks[blockrow, blockcol].rows, row - get(newBM.nrows, blockrow - 1, 0))
+            push!(newBM.blocks[blockrow, blockcol].cols, col - get(newBM.ncols, blockcol - 1, 0))
             
-            return newGM, 1.0
+            return newBM, 1.0
         else #add a match
             col = StatsBase.sample(setdiff(cols, matchcols))
-            gcol = getgridcol(col, GM)
-            push!(newGM.grid[grow, gcol].rows, row - get(newGM.nrows, grow - 1, 0))
-            push!(newGM.grid[grow, gcol].cols, col - get(newGM.ncols, gcol - 1, 0))
-            return newGM, p / (length(cols) - length(matchcols) + 1)
+            blockcol = getblockcol(col, BM)
+            push!(newBM.blocks[blockrow, blockcol].rows, row - get(newBM.nrows, blockrow - 1, 0))
+            push!(newBM.blocks[blockrow, blockcol].cols, col - get(newBM.ncols, blockcol - 1, 0))
+            return newBM, p / (length(cols) - length(matchcols) + 1)
         end
     end
 end
 
-function =={G <: GridMatchMatrix}(GM1::G, GM2::G)
-    return all(GM1.grid .== GM2.grid)
+function =={G <: BlockMatchMatrix}(BM1::G, BM2::G)
+    return all(BM1.blocks .== BM2.blocks)
 end
 
 #get(cumsum([1,6,3,5]), 1, 0)

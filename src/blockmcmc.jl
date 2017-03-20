@@ -4,58 +4,58 @@ Metropolis-Hastings MCMC Algorithm for posterior distribution of a grid of Match
 function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
     niter::Int64,
     data::BitArray{3},
-    grows::Array{G, 1},
-    gcols::Array{G, 1},
-    GM0::GridMatchMatrix{G},
+    blockrows::Array{G, 1},
+    blockcols::Array{G, 1},
+    BM0::BlockMatchMatrix{G},
     M0::Array{T, 1},
     U0::Array{T, 1},
-    logpdfGM::Function,
+    logpdfBM::Function,
     logpdfM::Function,
     logpdfU::Function,
     loglikelihood::Function,
-    transitionGM::Function,
+    transitionBM::Function,
     transitionM::Function,
     transitionU::Function;
-    nGM::Int64 = 1,
+    nBM::Int64 = 1,
     nM::Int64 = 1,
     nU::Int64 = 1)
     
     #MCMC Chains
-    #GMArray = Array{GridMatchMatrix}(niter, length(grows))
-    GMArray = Array{MatchMatrix{G}}(niter, length(grows))
+    #BMArray = Array{BlockMatchMatrix}(niter, length(blockrows))
+    BMArray = Array{MatchMatrix{G}}(niter, length(blockrows))
     MArray = Array{eltype(M0)}(niter, length(M0))
     UArray = Array{eltype(U0)}(niter, length(U0))
 
     #Track transitions
-    transGM = falses(niter)
+    transBM = falses(niter)
     transM = falses(niter)
     transU = falses(niter)
 
     #Initial States
-    currGM = GM0
-    currTable = data2table(data, grows, gcols, currGM)
+    currBM = BM0
+    currTable = data2table(data, blockrows, blockcols, currBM)
     currM = M0
     currU = U0
     
     #out iteration
     for ii in 1:niter
         
-        #Inner iteration for GM
-        for gg in 1:nGM
-            propGM, ratioGM = transitionGM(grows, gcols, currGM)
-            propTable = data2table(data, grows, gcols, propGM)
+        #Inner iteration for BM
+        for gg in 1:nBM
+            propBM, ratioBM = transitionBM(blockrows, blockcols, currBM)
+            propTable = data2table(data, blockrows, blockcols, propBM)
             #println("prop C")
             #compute a1
-            a1 = exp(logpdfGM(grows, gcols, propGM) + loglikelihood(propTable, currM, currU) - logpdfGM(grows, gcols, currGM) - loglikelihood(currTable, currM, currU))
+            a1 = exp(logpdfBM(blockrows, blockcols, propBM) + loglikelihood(propTable, currM, currU) - logpdfBM(blockrows, blockcols, currBM) - loglikelihood(currTable, currM, currU))
             #println("a1 C")
             #compute a2
-            a2 = ratioGM
+            a2 = ratioBM
             #println("a2 C")
             if rand() < a1 * a2
-                #println("GridMatrixTransition")
-                currGM = propGM
+                #println("BlockMatrixTransition")
+                currBM = propBM
                 currTable = propTable
-                transGM[ii] = true
+                transBM[ii] = true
             end
         end
 
@@ -92,13 +92,13 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
         end
 
         #Add states to chain
-        for (jj, (rr, cc)) in enumerate(zip(grows, gcols))
-            GMArray[ii, jj] = currGM.grid[rr, cc]
+        for (jj, (rr, cc)) in enumerate(zip(blockrows, blockcols))
+            BMArray[ii, jj] = currBM.blocks[rr, cc]
         end
         MArray[ii, :] = currM
         UArray[ii, :] = currU
     end
-    return GMArray, MArray, UArray, transGM, transM, transU
+    return BMArray, MArray, UArray, transBM, transM, transU
 end
 
 """
@@ -107,59 +107,59 @@ Allow rows to be excluded
 function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
     niter::Int64,
     data::BitArray{3},
-    grows::Array{G, 1},
-    gcols::Array{G, 1},
+    blockrows::Array{G, 1},
+    blockcols::Array{G, 1},
     exrows::Array{G, 1},
     excols::Array{G, 1},
-    GM0::GridMatchMatrix{G},
+    BM0::BlockMatchMatrix{G},
     M0::Array{T, 1},
     U0::Array{T, 1},
-    logpdfGM::Function,
+    logpdfBM::Function,
     logpdfM::Function,
     logpdfU::Function,
     loglikelihood::Function,
-    transitionGM::Function,
+    transitionBM::Function,
     transitionM::Function,
     transitionU::Function;
-    nGM::Int64 = 1,
+    nBM::Int64 = 1,
     nM::Int64 = 1,
     nU::Int64 = 1)
     
     #MCMC Chains
-    #GMArray = Array{GridMatchMatrix}(niter, length(grows))
-    GMArray = Array{MatchMatrix{G}}(niter, length(grows))
+    #BMArray = Array{BlockMatchMatrix}(niter, length(blockrows))
+    BMArray = Array{MatchMatrix{G}}(niter, length(blockrows))
     MArray = Array{eltype(M0)}(niter, length(M0))
     UArray = Array{eltype(U0)}(niter, length(U0))
 
     #Track transitions
-    transGM = falses(niter)
+    transBM = falses(niter)
     transM = falses(niter)
     transU = falses(niter)
 
     #Initial States
-    currGM = GM0
-    currTable = data2table(data, grows, gcols, currGM)
+    currBM = BM0
+    currTable = data2table(data, blockrows, blockcols, currBM)
     currM = M0
     currU = U0
     
     #out iteration
     for ii in 1:niter
         
-        #Inner iteration for GM
-        for gg in 1:nGM
-            propGM, ratioGM = transitionGM(grows, gcols, exrows, excols, currGM)
-            propTable = data2table(data, grows, gcols, propGM)
+        #Inner iteration for BM
+        for gg in 1:nBM
+            propBM, ratioBM = transitionBM(blockrows, blockcols, exrows, excols, currBM)
+            propTable = data2table(data, blockrows, blockcols, propBM)
             #println("prop C")
             #compute a1
-            a1 = exp(logpdfGM(grows, gcols, propGM) + loglikelihood(propTable, currM, currU) - logpdfGM(grows, gcols, currGM) - loglikelihood(currTable, currM, currU))
+            a1 = exp(logpdfBM(blockrows, blockcols, propBM) + loglikelihood(propTable, currM, currU) - logpdfBM(blockrows, blockcols, currBM) - loglikelihood(currTable, currM, currU))
             #println("a1 C")
             #compute a2
-            a2 = ratioGM
+            a2 = ratioBM
             #println("a2 C")
             if rand() < a1 * a2
-                currGM = propGM
+                currBM = propBM
                 currTable = propTable
-                transGM[ii] = true
+                transBM[ii] = true
             end
         end
 
@@ -196,13 +196,13 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
         end
 
         #Add states to chain
-        for (jj, (rr, cc)) in enumerate(zip(grows, gcols))
-            GMArray[ii, jj] = currGM.grid[rr, cc]
+        for (jj, (rr, cc)) in enumerate(zip(blockrows, blockcols))
+            BMArray[ii, jj] = currBM.blocks[rr, cc]
         end
         MArray[ii, :] = currM
         UArray[ii, :] = currU
     end
-    return GMArray, MArray, UArray, transGM, transM, transU
+    return BMArray, MArray, UArray, transBM, transM, transU
 end
 
 """
@@ -211,45 +211,45 @@ Metropolis-Hastings MCMC Algorithm for posterior distribution of a grid of Match
 function metropolis_hastings_sample{G <: Integer, T <: AbstractFloat}(
     niter::Int64,
     data::BitArray{3},
-    grows::Array{G, 1},
-    gcols::Array{G, 1},
-    GM0::GridMatchMatrix{G},
+    blockrows::Array{G, 1},
+    blockcols::Array{G, 1},
+    BM0::BlockMatchMatrix{G},
     M0::Array{T, 1},
     U0::Array{T, 1},
-    logpdfGM::Function,
+    logpdfBM::Function,
     logpdfM::Function,
     logpdfU::Function,
     loglikelihood::Function,
-    transitionGM::Function,
+    transitionBM::Function,
     transitionM::Function,
     transitionU::Function;
-    nGM::Int64 = 1,
+    nBM::Int64 = 1,
     nM::Int64 = 1,
     nU::Int64 = 1)
     
     #Initial States
-    currGM = GM0
-    currTable = data2table(data, grows, gcols, currGM)
+    currBM = BM0
+    currTable = data2table(data, blockrows, blockcols, currBM)
     currM = M0
     currU = U0
     
     #out iteration
     for ii in 1:niter
         
-        #Inner iteration for GM
-        for gg in 1:nGM
-            propGM, ratioGM = transitionGM(grows, gcols, currGM)
-            propTable = data2table(data, grows, gcols, propGM)
+        #Inner iteration for BM
+        for gg in 1:nBM
+            propBM, ratioBM = transitionBM(blockrows, blockcols, currBM)
+            propTable = data2table(data, blockrows, blockcols, propBM)
 
             #compute a1
-            a1 = exp(logpdfGM(grows, gcols, propGM) + loglikelihood(propTable, currM, currU) - logpdfGM(grows, gcols, currGM) - loglikelihood(currTable, currM, currU))
+            a1 = exp(logpdfBM(blockrows, blockcols, propBM) + loglikelihood(propTable, currM, currU) - logpdfBM(blockrows, blockcols, currBM) - loglikelihood(currTable, currM, currU))
 
             #compute a2
-            a2 = ratioGM
+            a2 = ratioBM
 
             #check if move accepted
             if rand() < a1 * a2
-                currGM = propGM
+                currBM = propBM
                 currTable = propTable
             end
         end
@@ -287,7 +287,7 @@ function metropolis_hastings_sample{G <: Integer, T <: AbstractFloat}(
             end
         end
     end
-    return currGM, currM, currU
+    return currBM, currM, currU
 end
 
 """
@@ -296,47 +296,47 @@ Allow rows to be excluded
 function metropolis_hastings_sample{G <: Integer, T <: AbstractFloat}(
     niter::Int64,
     data::BitArray{3},
-    grows::Array{G, 1},
-    gcols::Array{G, 1},
+    blockrows::Array{G, 1},
+    blockcols::Array{G, 1},
     exrows::Array{G, 1},
     excols::Array{G, 1},
-    GM0::GridMatchMatrix{G},
+    BM0::BlockMatchMatrix{G},
     M0::Array{T, 1},
     U0::Array{T, 1},
-    logpdfGM::Function,
+    logpdfBM::Function,
     logpdfM::Function,
     logpdfU::Function,
     loglikelihood::Function,
-    transitionGM::Function,
+    transitionBM::Function,
     transitionM::Function,
     transitionU::Function;
-    nGM::Int64 = 1,
+    nBM::Int64 = 1,
     nM::Int64 = 1,
     nU::Int64 = 1)
     
     #Initial States
-    currGM = GM0
-    currTable = data2table(data, grows, gcols, currGM)
+    currBM = BM0
+    currTable = data2table(data, blockrows, blockcols, currBM)
     currM = M0
     currU = U0
     
     #out iteration
     for ii in 1:niter
         
-        #Inner iteration for GM
-        for gg in 1:nGM
-            propGM, ratioGM = transitionGM(grows, gcols, exrows, excols, currGM)
-            propTable = data2table(data, grows, gcols, propGM)
+        #Inner iteration for BM
+        for gg in 1:nBM
+            propBM, ratioBM = transitionBM(blockrows, blockcols, exrows, excols, currBM)
+            propTable = data2table(data, blockrows, blockcols, propBM)
 
             #compute a1
-            a1 = exp(logpdfGM(grows, gcols, propGM) + loglikelihood(propTable, currM, currU) - logpdfGM(grows, gcols, currGM) - loglikelihood(currTable, currM, currU))
+            a1 = exp(logpdfBM(blockrows, blockcols, propBM) + loglikelihood(propTable, currM, currU) - logpdfBM(blockrows, blockcols, currBM) - loglikelihood(currTable, currM, currU))
 
             #compute a2
-            a2 = ratioGM
+            a2 = ratioBM
 
             #check for transition
             if rand() < a1 * a2
-                currGM = propGM
+                currBM = propBM
                 currTable = propTable
             end
         end
@@ -373,5 +373,5 @@ function metropolis_hastings_sample{G <: Integer, T <: AbstractFloat}(
             end
         end
     end
-    return currGM, currM, currU
+    return currBM, currM, currU
 end

@@ -6,33 +6,33 @@ function metropolis_hastings_twostep{G <: Integer, T <: AbstractFloat}(
     niter1::Int64,
     niter2::Int64,
     data::BitArray{3},
-    grows1::Array{G, 1},
-    gcols1::Array{G, 1},
-    grows2::Array{G, 1},
-    gcols2::Array{G, 1},
-    GM0::GridMatchMatrix,
+    blockrows1::Array{G, 1},
+    blockcols1::Array{G, 1},
+    blockrows2::Array{G, 1},
+    blockcols2::Array{G, 1},
+    BM0::BlockMatchMatrix,
     M0::Array{T, 1},
     U0::Array{T, 1},
-    logpdfGM::Function,
+    logpdfBM::Function,
     logpdfM::Function,
     logpdfU::Function,
     loglikelihood::Function,
-    transitionGM::Function,
+    transitionBM::Function,
     transitionM::Function,
     transitionU::Function,
     θ::Float64,
     p::Float64;
-    nGM::Int64 = 1,
+    nBM::Int64 = 1,
     nM::Int64 = 1,
     nU::Int64 = 1)
 
-    rows0, cols0 = getmatches(GM0)
+    rows0, cols0 = getmatches(BM0)
     
     println("MCMC For Step 1")
-    S1GMArray, S1MArray, S1UArray, chgGM, chgM, chgU =
-        metropolis_hastings_mixing(niter1, data, grows1, gcols1, GM0, M0, U0,
-                                   logpdfGM, logpdfM, logpdfU, loglikelihood,
-                                   transitionGM, transitionM, transitionU, nGM = nGM,
+    S1BMArray, S1MArray, S1UArray, chgBM, chgM, chgU =
+        metropolis_hastings_mixing(niter1, data, blockrows1, blockcols1, BM0, M0, U0,
+                                   logpdfBM, logpdfM, logpdfU, loglikelihood,
+                                   transitionBM, transitionM, transitionU, nBM = nBM,
                                    nM = nM, nU = nU)
 
     println("Processing Step 1 Results...")
@@ -47,8 +47,8 @@ function metropolis_hastings_twostep{G <: Integer, T <: AbstractFloat}(
     function logpdfM2{T <: AbstractFloat}(γM::Array{T, 1})
         return sum([Distributions.logpdf(d, pi) for (d, pi) in zip(mixtureM, γM)])
     end
-    function transitionGM2{G <: Integer}(grows::Array{G, 1}, gcols::Array{G, 1}, exrows::Array{G, 1}, excols::Array{G, 1}, GM::GridMatchMatrix)
-        return move_gridmatchmatrix_exclude(grows, gcols, exrows, excols, GM, 0.5)
+    function transitionBM2{G <: Integer}(blockrows::Array{G, 1}, blockcols::Array{G, 1}, exrows::Array{G, 1}, excols::Array{G, 1}, BM::BlockMatchMatrix)
+        return move_blockmatchmatrix_exclude(blockrows, blockcols, exrows, excols, BM, 0.5)
     end
     
     #Allocate Arrays for results
@@ -61,35 +61,35 @@ function metropolis_hastings_twostep{G <: Integer, T <: AbstractFloat}(
         #=
         #Sample from posterior
         draw = StatsBase.sample(1000:niter1)
-        GMS1 = GridMatchMatrix(GM0.nrows, GM0.ncols)
-        for (jj, (rr, cc)) in enumerate(zip(grows1, gcols1))
-            GMS1.grid[rr, cc] = S1GMArray[draw, jj]
+        BMS1 = BlockMatchMatrix(BM0.nrows, BM0.ncols)
+        for (jj, (rr, cc)) in enumerate(zip(blockrows1, blockcols1))
+            BMS1.blocks[rr, cc] = S1BMArray[draw, jj]
         end
-        exrows1, excols1 = getmatches(GMS1)
+        exrows1, excols1 = getmatches(BMS1)
 
-        #Map posterior sample to initial GridMatchMatrix
+        #Map posterior sample to initial BlockMatchMatrix
         keep = map(x -> !in(x, exrows1), rows0) .* map(x -> !in(x, excols1), cols0)
-        CS20 = MatchMatrix(rows0[keep], cols0[keep], GM0.nrow, GM0.ncol)
-        GMS20 = GridMatchMatrix(GM0.nrows, GM0.ncols, CS20)
-        for (jj, (rr, cc)) in enumerate(zip(grows1, gcols1))
-            GMS20.grid[rr, cc] = S1GMArray[draw, jj]
+        CS20 = MatchMatrix(rows0[keep], cols0[keep], BM0.nrow, BM0.ncol)
+        BMS20 = BlockMatchMatrix(BM0.nrows, BM0.ncols, CS20)
+        for (jj, (rr, cc)) in enumerate(zip(blockrows1, blockcols1))
+            BMS20.blocks[rr, cc] = S1BMArray[draw, jj]
         end
 
         
         #MCMC for conditonal posterior
-        S2GMArray, S2MArray, S2UArray, chgGM, chgM, chgU =
-            metropolis_hastings_mixing(niter2, data, grows2, gcols2, exrows1,
-                                       excols1, GMS20, M1, U1, logpdfGM, logpdfM2,
+        S2BMArray, S2MArray, S2UArray, chgBM, chgM, chgU =
+            metropolis_hastings_mixing(niter2, data, blockrows2, blockcols2, exrows1,
+                                       excols1, BMS20, M1, U1, logpdfBM, logpdfM2,
                                        logpdfU, loglikelihood_datatable,
-                                       transitionGM2, transitionM, transitionU,
-                                       nGM = nGM, nM = nM, nU = nU)
+                                       transitionBM2, transitionM, transitionU,
+                                       nBM = nBM, nM = nM, nU = nU)
 
         #Convert to standard MatchMatrix and save result
-        for (jj, (rr, cc)) in enumerate(zip(grows2, gcols2))
-            GMS1.grid[rr, cc] = S2GMArray[end, jj]
+        for (jj, (rr, cc)) in enumerate(zip(blockrows2, blockcols2))
+            BMS1.blocks[rr, cc] = S2BMArray[end, jj]
         end
         
-        outC[ii] = MatchMatrix(getmatches(GMS1)..., GM0.nrow, GM0.ncol)
+        outC[ii] = MatchMatrix(getmatches(BMS1)..., BM0.nrow, BM0.ncol)
         outM[ii, :] = S2MArray[end, :]
         outU[ii, :] = S2UArray[end, :]
         =#
@@ -98,22 +98,22 @@ function metropolis_hastings_twostep{G <: Integer, T <: AbstractFloat}(
             niter2,
             minidx,
             data,
-            grows1,
-            gcols1,
-            grows2,
-            gcols2,
-            S1GMArray,
-            GM0,
+            blockrows1,
+            blockcols1,
+            blockrows2,
+            blockcols2,
+            S1BMArray,
+            BM0,
             M1,
             U1,
-            logpdfGM,
+            logpdfBM,
             logpdfM2,
             logpdfU,
             loglikelihood,
-            transitionGM2,
+            transitionBM2,
             transitionM,
             transitionU,
-            nGM = nGM,
+            nBM = nBM,
             nM = nM,
             nU = nU)
     end
@@ -127,22 +127,22 @@ function metropolis_hastings_conditional_sample{G <: Integer, T <: AbstractFloat
     minidx::Int64,
     niter::Int64,
     data::BitArray{3},
-    condGRows::Array{G, 1},
-    condGCols::Array{G, 1},
-    nextGRows::Array{G, 1},
-    nextGCols::Array{G, 1},
+    condBlockrows::Array{G, 1},
+    condBlockcols::Array{G, 1},
+    nextBlockrows::Array{G, 1},
+    nextBlockcols::Array{G, 1},
     blockArray::Array{MatchMatrix{G}, 2},
-    GM0::GridMatchMatrix{Int64},
+    BM0::BlockMatchMatrix{Int64},
     M0::Array{T, 1},
     U0::Array{T, 1},
-    logpdfGM::Function,
+    logpdfBM::Function,
     logpdfM::Function,
     logpdfU::Function,
     loglikelihood::Function,
-    transitionGM::Function,
+    transitionBM::Function,
     transitionM::Function,
     transitionU::Function;
-    nGM::Int64 = 1,
+    nBM::Int64 = 1,
     nM::Int64 = 1,
     nU::Int64 = 1)
 
@@ -150,37 +150,37 @@ function metropolis_hastings_conditional_sample{G <: Integer, T <: AbstractFloat
     draw = StatsBase.sample(minidx:size(blockArray, 1))
 
     #Transfer sampled entries to starting array
-    GM = GridMatchMatrix(GM0.nrows, GM0.ncols)
-    for (jj, (rr, cc)) in enumerate(zip(condGRows, condGCols))
-        GM.grid[rr, cc] = blockArray[draw, jj]
+    BM = BlockMatchMatrix(BM0.nrows, BM0.ncols)
+    for (jj, (rr, cc)) in enumerate(zip(condBlockrows, condBlockcols))
+        BM.blocks[rr, cc] = blockArray[draw, jj]
     end
-    exrows, excols = getmatches(GM)
+    exrows, excols = getmatches(BM)
 
-    #Map posterior sample to initial GridMatchMatrix
-    rows0, cols0 = getmatches(GM0)
+    #Map posterior sample to initial BlockMatchMatrix
+    rows0, cols0 = getmatches(BM0)
     #map(x -> !in(x, exrows), rows0) .* map(x -> !in(x, excols), cols0)
     keep = ![in(rr, exrows) || in(cc, excols) for (rr, cc) in zip(exrows, excols)]
     
     #Set values based on draw
-    add_match!(GM, rows0[keep], cols0[keep])
+    add_match!(BM, rows0[keep], cols0[keep])
     
-    outGM, outM, outU =
+    outBM, outM, outU =
         metropolis_hastings_sample(niter,
                                    data,
-                                   nextGRows,
-                                   nextGCols,
+                                   nextBlockrows,
+                                   nextBlockcols,
                                    exrows,
                                    excols,
-                                   GM,
+                                   BM,
                                    M0,
                                    U0,
-                                   logpdfGM,
+                                   logpdfBM,
                                    logpdfM,
                                    logpdfU,
                                    loglikelihood_datatable,
-                                   transitionGM,
+                                   transitionBM,
                                    transitionM,
                                    transitionU,
-                                   nGM = nGM, nM = nM, nU = nU)
-    outC = MatchMatrix(getmatches(outGM)..., outGM.nrow, outGM.ncol)
+                                   nBM = nBM, nM = nM, nU = nU)
+    outC = MatchMatrix(getmatches(outBM)..., outBM.nrow, outBM.ncol)
 end

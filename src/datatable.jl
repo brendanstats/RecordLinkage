@@ -40,17 +40,17 @@ end
 """
 Compute 2x2 table of data for each measure
 """
-function data2table{G <: Integer}(data::BitArray{3}, GM::GridMatchMatrix{G})
-    if size(data, 1) != GM.nrow
-        error("second dimention of data must match number of rows in GridMatchMatrix")
+function data2table{G <: Integer}(data::BitArray{3}, BM::BlockMatchMatrix{G})
+    if size(data, 1) != BM.nrow
+        error("second dimention of data must match number of rows in BlockMatchMatrix")
     end
-    if size(data, 2) != GM.ncol
-        error("third dimention of data must match number of columns in GridMatchMatrix")
+    if size(data, 2) != BM.ncol
+        error("third dimention of data must match number of columns in BlockMatchMatrix")
     end
     nmeasure = size(data, 3)
     nobs = size(data)[1] * size(data)[2]
     
-    matchrows, matchcols = getmatches(GM)
+    matchrows, matchcols = getmatches(BM)
     nones = length(matchrows)
     datatable = zeros(Int64, nmeasure, 2, 2)
     for ii in 1:nmeasure
@@ -69,29 +69,29 @@ function data2table{G <: Integer}(data::BitArray{3}, GM::GridMatchMatrix{G})
     return datatable
 end
 
-function data2table{G <: Integer, T <: Integer}(data::BitArray{3}, grows::Array{T, 1}, gcols::Array{T, 1}, GM::GridMatchMatrix{G})
-    if size(data, 1) != GM.nrow
-        error("second dimention of data must match number of rows in GridMatchMatrix")
+function data2table{G <: Integer, T <: Integer}(data::BitArray{3}, blockrows::Array{T, 1}, blockcols::Array{T, 1}, BM::BlockMatchMatrix{G})
+    if size(data, 1) != BM.nrow
+        error("second dimention of data must match number of rows in BlockMatchMatrix")
     end
-    if size(data, 2) != GM.ncol
-        error("third dimention of data must match number of columns in GridMatchMatrix")
+    if size(data, 2) != BM.ncol
+        error("third dimention of data must match number of columns in BlockMatchMatrix")
     end
-    if length(grows) != length(gcols)
-        error("length of grid columns and grid rows must match")
+    if length(blockrows) != length(blockcols)
+        error("length of block columns and block rows must match")
     end
     nmeasure = size(data, 3)
 
     #Compute number of observations being examined and number of ones in data
     nobs = 0
     dataones = zeros(Int64, nmeasure)
-    for (rr, cc) in zip(grows, gcols)
-        nobs += GM.nrows[rr] * GM.ncols[cc]
-        drows = getrows(rr, GM)
-        dcols = getcols(cc, GM)
+    for (rr, cc) in zip(blockrows, blockcols)
+        nobs += BM.nrows[rr] * BM.ncols[cc]
+        drows = getrows(rr, BM)
+        dcols = getcols(cc, BM)
         dataones += vec(sum(data[drows, dcols, :], 1:2))
     end
     
-    matchrows, matchcols = getmatches(grows, gcols, GM)
+    matchrows, matchcols = getmatches(blockrows, blockcols, BM)
     nones = length(matchrows)
     
     datatable = zeros(Int64, nmeasure, 2, 2)
