@@ -22,7 +22,7 @@ U0 = vec((sum(data[:, :, 2:4], 1:2) .- length(rows)) ./ (40 * 40 - length(rows))
 
 b1rows = sum(data[:, 1, 1])
 b1cols = sum(data[1, :, 1])
-GM0 = GridMatchMatrix([b1rows, 40 - b1rows], [b1cols, 40 - b1cols], C0)
+BM0 = BlockMatchMatrix([b1rows, 40 - b1rows], [b1cols, 40 - b1cols], C0)
 
 #=
 Standard algorithm
@@ -133,21 +133,21 @@ Blocking Case
 =#
 
 #prior on the grid match matrix (just need something proportional)
-function lpGM(grows::Array{Int64, 1}, gcols::Array{Int64, 1}, GM::GridMatchMatrix)
+function lpBM(blockrows::Array{Int64, 1}, blockcols::Array{Int64, 1}, BM::BlockMatchMatrix)
     θ = 0.6
     l = 0
-    for (ii, jj) in zip(grows, gcols)
-        l += length(GM.grid[ii, jj].rows)
+    for (ii, jj) in zip(blockrows, blockcols)
+        l += length(BM.blocks[ii, jj].rows)
     end
     return -θ * l
 end
 
 #transition functions with transition ratios
-function transGM{G <: Integer}(grows::Array{G, 1}, gcols::Array{G, 1}, GM::GridMatchMatrix)
-    return move_gridmatchmatrix(grows, gcols, GM, 0.5)
+function transBM{G <: Integer}(blockrows::Array{G, 1}, blockcols::Array{G, 1}, BM::BlockMatchMatrix)
+    return move_blockmatchmatrix(blockrows, blockcols, BM, 0.5)
 end
 
-function transMGrid{T <: AbstractFloat}(probs::Array{T, 1})
+function transMBlock{T <: AbstractFloat}(probs::Array{T, 1})
     d1 = LogisticNormal.(probs, 1.05)
     probsNew = rand.(d1)
     d2 = LogisticNormal.(probsNew, 1.05)
@@ -155,7 +155,7 @@ function transMGrid{T <: AbstractFloat}(probs::Array{T, 1})
     return probsNew, exp(logp)
 end
 
-function transUGrid{T <: AbstractFloat}(probs::Array{T, 1})
+function transUBlock{T <: AbstractFloat}(probs::Array{T, 1})
     d1 = LogisticNormal.(probs, 0.1)
     probsNew = rand.(d1)
     d2 = LogisticNormal.(probsNew, 0.1)
@@ -167,36 +167,36 @@ end
 niter = 100000
 srand(53177)
 
-@time S1GMArray, S1MArray, S1UArray, chgGM, chgM, chgU = metropolis_hastings_mixing(niter,
+@time S1BMArray, S1MArray, S1UArray, chgBM, chgM, chgU = metropolis_hastings_mixing(niter,
                                                                                     data[:, :, 2:4],
                                                                                     [1, 2],
                                                                                     [1, 2],
-                                                                                    GM0,
+                                                                                    BM0,
                                                                                     M0,
                                                                                     U0,
-                                                                                    lpGM,
+                                                                                    lpBM,
                                                                                     lpM,
                                                                                     lpU,
                                                                                     loglikelihood_datatable,
-                                                                                    transGM,
-                                                                                    transMGrid,
-                                                                                    transUGrid)
+                                                                                    transBM,
+                                                                                    transMBlock,
+                                                                                    transUBlock)
 mean(chgM)
 mean(chgU)
-mean(chgGM)
+mean(chgBM)
 
 datatable[1, :, :]
 datatable[2, :, :]
 datatable[3, :, :]
 
-datatable0 = data2table(data[:, :, 2:4], [1, 2], [1, 2], GM0)
+datatable0 = data2table(data[:, :, 2:4], [1, 2], [1, 2], BM0)
 
 n = 10000
 a1 = Array{Float64}(n)
 a2 = Array{Float64}(n)
 for ii in 1:n
-    GM1, logtransition = transGM([1, 2], [1, 2], GM0)
-    datatable1 = data2table(data[:, :, 2:4], [1, 2], [1, 2], GM1)
+    BM1, logtransition = transBM([1, 2], [1, 2], BM0)
+    datatable1 = data2table(data[:, :, 2:4], [1, 2], [1, 2], BM1)
     #a1[ii] = exp(loglikelihood_datatable(datatable1, [0.8, 0.8, 0.8], U0) - loglikelihood_datatable(datatable0, [0.8, 0.8, 0.8], U0))
     a1[ii] = exp(loglikelihood_datatable(datatable1, M0, U0) - loglikelihood_datatable(datatable0, M0, U0))
     a2[ii] = exp(logtransition)
@@ -204,7 +204,7 @@ end
 sum((a1 .* a2) .> 1.0)
 mean((a1 .* a2) .> 1.0)
 
-exp(lpGM([1, 2], [1, 2], GM1) - lpGM([1, 2], [1, 2], GM0))
+exp(lpBM([1, 2], [1, 2], BM1) - lpBM([1, 2], [1, 2], BM0))
 
 
 R"par(mfrow = c(2,3))
@@ -237,43 +237,43 @@ function lpUS2{T <: AbstractFloat}(γU::Array{T, 1})
     return log(unitkde_interpolate(γU[1], kdetiltS1U1)) + log(unitkde_interpolate(γU[2], kdetiltS1U2)) + log(unitkde_interpolate(γU[3], kdetiltS1U3))
 end
 
-function transGMS2{G <: Integer}(grows::Array{G, 1}, gcols::Array{G, 1}, exrows::Array{G, 1}, excols::Array{G, 1}, GM::GridMatchMatrix)
-    return move_gridmatchmatrix_exclude(grows, gcols, exrows, excols, GM, 0.5)
+function transBMS2{G <: Integer}(blockrows::Array{G, 1}, blockcols::Array{G, 1}, exrows::Array{G, 1}, excols::Array{G, 1}, BM::BlockMatchMatrix)
+    return move_blockmatchmatrix_exclude(blockrows, blockcols, exrows, excols, BM, 0.5)
 end
 
 #Sample from blocked posterior
 draw = StatsBase.sample(1000:niter)
-GMS1 = GridMatchMatrix([20,20], [20,20])
+BMS1 = BlockMatchMatrix([20,20], [20,20])
 for (ii, (rr, cc)) in enumerate(zip([1, 2], [1, 2]))
-    GMS1.grid[rr, cc] = S1GMArray[draw, ii]
+    BMS1.blocks[rr, cc] = S1BMArray[draw, ii]
 end
 
-mrows, mcols = getmatches(GMS1)
+mrows, mcols = getmatches(BMS1)
 keep = map(x -> !in(x, mrows), rows) .* map(x -> !in(x, mcols), cols)
 CS20 = MatchMatrix(rows[keep], cols[keep], 40, 40)
-GMS20 = GridMatchMatrix([20,20], [20,20], CS20)
+BMS20 = BlockMatchMatrix([20,20], [20,20], CS20)
 for (ii, (rr, cc)) in enumerate(zip([1, 2], [1, 2]))
-    GMS20.grid[rr, cc] = S1GMArray[draw, ii]
+    BMS20.blocks[rr, cc] = S1BMArray[draw, ii]
 end
 
 srand(30271)
 
-@time S2GMArray, S2MArray, S2UArray, chgGM, chgM, chgU = metropolis_hastings_mixing(niter,
+@time S2BMArray, S2MArray, S2UArray, chgBM, chgM, chgU = metropolis_hastings_mixing(niter,
                                                                                     data,
                                                                                     [2, 1],
                                                                                     [1, 2],
                                                                                     mrows,
                                                                                     mcols,
-                                                                                    GMS20,
+                                                                                    BMS20,
                                                                                     M0,
                                                                                     U0,
-                                                                                    lpGM,
+                                                                                    lpBM,
                                                                                     lpM,
                                                                                     lpU,
                                                                                     loglikelihood_datatable,
-                                                                                    transGMS2,
-                                                                                    transMGrid,
-                                                                                    transUGrid)
+                                                                                    transBMS2,
+                                                                                    transMBlock,
+                                                                                    transUBlock)
 R"par(mfrow = c(2,3))
 plot(density($S2MArray[,1]), xlim = c(0, 1), main = 'M1')
 abline(v = $pM[1], col = 2)

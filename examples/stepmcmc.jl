@@ -23,7 +23,7 @@ U0 = vec((sum(data[:, :, 2:4], 1:2) .- length(rows)) ./ (40 * 40 - length(rows))
 
 b1rows = sum(data[:, 1, 1])
 b1cols = sum(data[1, :, 1])
-GM0 = GridMatchMatrix([b1rows, 40 - b1rows], [b1cols, 40 - b1cols], C0)
+BM0 = BlockMatchMatrix([b1rows, 40 - b1rows], [b1cols, 40 - b1cols], C0)
 
 #=
 Standard algorithm
@@ -190,21 +190,21 @@ Step Algorithm
 =#
 
 #prior on the grid match matrix (just need something proportional)
-function lpGM(grows::Array{Int64, 1}, gcols::Array{Int64, 1}, GM::GridMatchMatrix)
+function lpBM(blockrows::Array{Int64, 1}, blockcols::Array{Int64, 1}, BM::BlockMatchMatrix)
     θ = 0.6
     l = 0
-    for (ii, jj) in zip(grows, gcols)
-        l += length(GM.grid[ii, jj].rows)
+    for (ii, jj) in zip(blockrows, blockcols)
+        l += length(BM.blocks[ii, jj].rows)
     end
     return -θ * l
 end
 
 #transition functions with transition ratios
-function transGM{G <: Integer}(grows::Array{G, 1}, gcols::Array{G, 1}, GM::GridMatchMatrix)
-    return move_gridmatchmatrix(grows, gcols, GM, 0.5)
+function transBM{G <: Integer}(blockrows::Array{G, 1}, blockcols::Array{G, 1}, BM::BlockMatchMatrix)
+    return move_blockmatchmatrix(blockrows, blockcols, BM, 0.5)
 end
 
-function transMGrid{T <: AbstractFloat}(probs::Array{T, 1})
+function transMBlock{T <: AbstractFloat}(probs::Array{T, 1})
     d1 = LogisticNormal.(probs, 1.05)
     probsNew = rand.(d1)
     d2 = LogisticNormal.(probsNew, 1.05)
@@ -212,7 +212,7 @@ function transMGrid{T <: AbstractFloat}(probs::Array{T, 1})
     return probsNew, exp(logp)
 end
 
-function transUGrid{T <: AbstractFloat}(probs::Array{T, 1})
+function transUBlock{T <: AbstractFloat}(probs::Array{T, 1})
     d1 = LogisticNormal.(probs, 0.1)
     probsNew = rand.(d1)
     d2 = LogisticNormal.(probsNew, 0.1)
@@ -225,10 +225,10 @@ nsamples = 1000
 niter1 = 1000000
 niter2 = 10000
 
-grows1 = [1, 2]
-gcols1 = [1, 2]
-grows2 = [1, 2]
-gcols2 = [2, 1]
+blockrows1 = [1, 2]
+blockcols1 = [1, 2]
+blockrows2 = [1, 2]
+blockcols2 = [2, 1]
 θ = 0.1
 p = 0.1
 
@@ -238,23 +238,23 @@ outC, outM, outU = metropolis_hastings_twostep(nsamples,
                                                niter1,
                                                niter2,
                                                data[:, :, 2:4],
-                                               grows1,
-                                               gcols1,
-                                               grows2,
-                                               gcols2,
-                                               GM0,
+                                               blockrows1,
+                                               blockcols1,
+                                               blockrows2,
+                                               blockcols2,
+                                               BM0,
                                                M0,
                                                U0,
-                                               lpGM,
+                                               lpBM,
                                                lpM,
                                                lpU,
                                                loglikelihood_datatable,
-                                               transGM,
-                                               transMGrid,
-                                               transUGrid,
+                                               transBM,
+                                               transMBlock,
+                                               transUBlock,
                                                θ,
                                                p,
-                                               nGM = 1,
+                                               nBM = 1,
                                                nM = 1,
                                                nU = 1)
 

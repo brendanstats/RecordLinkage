@@ -5,6 +5,7 @@ function metropolis_hastings_twostep{G <: Integer, T <: AbstractFloat}(
     nsamples::Int64,
     niter1::Int64,
     niter2::Int64,
+    minidx::Int64,
     data::BitArray{3},
     blockrows1::Array{G, 1},
     blockcols1::Array{G, 1},
@@ -52,9 +53,9 @@ function metropolis_hastings_twostep{G <: Integer, T <: AbstractFloat}(
     end
     
     #Allocate Arrays for results
-    outC = Array{MatchMatrix}(nsamples)
-    outM = Array{eltype(M0)}(nsamples, length(M0))
-    outU = Array{eltype(U0)}(nsamples, length(U0))
+    outC = Array{MatchMatrix{G}}(nsamples)
+    outM = Array{T}(nsamples, length(M0))
+    outU = Array{T}(nsamples, length(U0))
 
     for ii in 1:nsamples
         println("sample ", ii, " of ", nsamples)
@@ -95,8 +96,8 @@ function metropolis_hastings_twostep{G <: Integer, T <: AbstractFloat}(
         =#
 
         outC[ii], outM[ii, :], outU[ii, :] = metropolis_hastings_conditional_sample(
-            niter2,
             minidx,
+            niter2,
             data,
             blockrows1,
             blockcols1,
@@ -159,7 +160,7 @@ function metropolis_hastings_conditional_sample{G <: Integer, T <: AbstractFloat
     #Map posterior sample to initial BlockMatchMatrix
     rows0, cols0 = getmatches(BM0)
     #map(x -> !in(x, exrows), rows0) .* map(x -> !in(x, excols), cols0)
-    keep = ![in(rr, exrows) || in(cc, excols) for (rr, cc) in zip(exrows, excols)]
+    keep = ![in(rr, exrows) || in(cc, excols) for (rr, cc) in zip(rows0, cols0)]
     
     #Set values based on draw
     add_match!(BM, rows0[keep], cols0[keep])
@@ -183,4 +184,5 @@ function metropolis_hastings_conditional_sample{G <: Integer, T <: AbstractFloat
                                    transitionU,
                                    nBM = nBM, nM = nM, nU = nU)
     outC = MatchMatrix(getmatches(outBM)..., outBM.nrow, outBM.ncol)
+    return outC, outM, outU
 end

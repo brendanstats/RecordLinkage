@@ -15,7 +15,7 @@ end
 Constructor based only on block size
 """
 function BlockMatchMatrix{G <: Integer}(nrows::Array{G, 1}, ncols::Array{G, 1})
-    blocks = Array{MatchMatrix}(length(nrows), length(ncols))
+    blocks = Array{MatchMatrix{G}}(length(nrows), length(ncols))
     for jj in eachindex(ncols)
         for ii in eachindex(nrows)
             blocks[ii, jj] = MatchMatrix(nrows[ii], ncols[jj])
@@ -71,8 +71,8 @@ MatchMatrix{G <: Integer}(BM::BlockMatchMatrix{G}) = MatchMatrix(getmatches(BM).
 """
 Create a shallow copy of BlockMatchMatrix
 """
-function Base.copy(BM::BlockMatchMatrix)
-    newblocks = Array{MatchMatrix}(length(BM.nrows), length(BM.ncols))
+function Base.copy{G <: Integer}(BM::BlockMatchMatrix{G})
+    newblocks = Array{MatchMatrix{G}}(length(BM.nrows), length(BM.ncols))
     for ii in eachindex(newblocks)
         newblocks[ii] = copy(BM.blocks[ii])
     end
@@ -80,25 +80,30 @@ function Base.copy(BM::BlockMatchMatrix)
 end
 
 """
+Return element type of BlockMatchMatrix
+"""
+Base.eltype{G <: Integer}(BM::BlockMatchMatrix{G}) = G
+
+"""
 Return the row of the grid of MatchMatrix corresponding to supplied row index of full matrix
 
 `getblockrow(row, BM)`
 """
-function getblockrow{G <: Integer}(row::G, BM::BlockMatchMatrix)
+function getblockrow{G <: Integer}(row::G, BM::BlockMatchMatrix{G})
     return searchsortedfirst(BM.cumrows, row)
 end
 
 """
 Return the column of the grid of MatchMatrix corresponding to supplied column index of full matrix
 """
-function getblockcol{G <: Integer}(col::G, BM::BlockMatchMatrix)
+function getblockcol{G <: Integer}(col::G, BM::BlockMatchMatrix{G})
     return searchsortedfirst(BM.cumcols, col)
 end
 
 """
 Return the rows of the full matrix corresponding to the given indicies
 """
-function getrows{G <: Integer}(blockrows::Array{G,1}, BM::BlockMatchMatrix)
+function getrows{G <: Integer}(blockrows::Array{G,1}, BM::BlockMatchMatrix{G})
     rows = Array{G}(0)
     for ii in unique(blockrows)
         append!(rows, (get(BM.cumrows, ii - 1, 0) + 1):BM.cumrows[ii])
@@ -106,14 +111,14 @@ function getrows{G <: Integer}(blockrows::Array{G,1}, BM::BlockMatchMatrix)
     return rows
 end
 
-function getrows{G <: Integer}(blockrow::G, BM::BlockMatchMatrix)
+function getrows{G <: Integer}(blockrow::G, BM::BlockMatchMatrix{G})
     return collect((get(BM.cumrows, blockrow - 1, 0) + 1):BM.cumrows[blockrow])
 end
 
 """
 Return the columns of the full matrix corresponding to the given indicies
 """
-function getcols{G <: Integer}(blockcols::Array{G,1}, BM::BlockMatchMatrix)
+function getcols{G <: Integer}(blockcols::Array{G,1}, BM::BlockMatchMatrix{G})
     cols = Array{G}(0)
     for ii in unique(blockcols)
         append!(cols, (get(BM.cumcols, ii - 1, 0) + 1):BM.cumcols[ii])
@@ -121,14 +126,14 @@ function getcols{G <: Integer}(blockcols::Array{G,1}, BM::BlockMatchMatrix)
     return cols
 end
 
-function getcols{G <: Integer}(blockcol::G, BM::BlockMatchMatrix)
+function getcols{G <: Integer}(blockcol::G, BM::BlockMatchMatrix{G})
     return collect((get(BM.cumcols, blockcol - 1, 0) + 1):BM.cumcols[blockcol])
 end
 
 """
 Return the rows of the full matrix corresponding to the given indicies, excluding listed entries
 """
-function getrows{G <: Integer}(blockrows::Array{G, 1}, exrows::Array{G, 1}, BM::BlockMatchMatrix)
+function getrows{G <: Integer}(blockrows::Array{G, 1}, exrows::Array{G, 1}, BM::BlockMatchMatrix{G})
     rows = Array{G}(0)
     for ii in unique(blockrows)
         append!(rows, (get(BM.cumrows, ii - 1, 0) + 1):BM.cumrows[ii])
@@ -136,14 +141,14 @@ function getrows{G <: Integer}(blockrows::Array{G, 1}, exrows::Array{G, 1}, BM::
     return setdiff(rows, exrows)
 end
 
-function getrows{G <: Integer}(blockrow::G, exrows::Array{G, 1}, BM::BlockMatchMatrix)
+function getrows{G <: Integer}(blockrow::G, exrows::Array{G, 1}, BM::BlockMatchMatrix{G})
     return setdiff(collect((get(BM.cumrows, blockrow - 1, 0) + 1):BM.cumrows[blockrow]), exrows)
 end
 
 """
 Return the columns of the full matrix corresponding to the given indicies, excluding listed entries
 """
-function getcols{G <: Integer}(blockcols::Array{G,1}, excols::Array{G, 1}, BM::BlockMatchMatrix)
+function getcols{G <: Integer}(blockcols::Array{G,1}, excols::Array{G, 1}, BM::BlockMatchMatrix{G})
     cols = Array{G}(0)
     for ii in unique(blockcols)
         append!(cols, (get(BM.cumcols, ii - 1, 0) + 1):BM.cumcols[ii])
@@ -151,7 +156,7 @@ function getcols{G <: Integer}(blockcols::Array{G,1}, excols::Array{G, 1}, BM::B
     return setdiff(cols, excols)
 end
 
-function getcols{G <: Integer}(blockcol::G, excols::Array{G, 1}, BM::BlockMatchMatrix)
+function getcols{G <: Integer}(blockcol::G, excols::Array{G, 1}, BM::BlockMatchMatrix{G})
     return setdiff(collect((get(BM.cumcols, blockcol - 1, 0) + 1):BM.cumcols[blockcol]), excols)
 end
 
@@ -159,7 +164,7 @@ end
 """
 Return the rows and columns of the full matrix corresponding to the given indicies of grid of blocks
 """
-function getindicies{G <: Integer}(blockrows::Array{G,1}, blockcols::Array{G,1}, BM::BlockMatchMatrix)
+function getindicies{G <: Integer}(blockrows::Array{G,1}, blockcols::Array{G,1}, BM::BlockMatchMatrix{G})
     rows = Array{G}(0)
     cols = Array{G}(0)
     for (ii, jj) in zip(blockrows, blockcols)
@@ -172,7 +177,7 @@ end
 """
 Get columns and rows containing a match
 """
-function getmatches{G <: Integer}(blockrows::Array{G,1}, blockcols::Array{G,1}, BM::BlockMatchMatrix)
+function getmatches{G <: Integer}(blockrows::Array{G,1}, blockcols::Array{G,1}, BM::BlockMatchMatrix{G})
     rows = Array{G}(0)
     cols = Array{G}(0)
     for (ii, jj) in zip(blockrows, blockcols)
@@ -184,11 +189,11 @@ function getmatches{G <: Integer}(blockrows::Array{G,1}, blockcols::Array{G,1}, 
     return rows, cols
 end
 
-function getmatches(BM::BlockMatchMatrix)
-    rows = Array{eltype(BM.blocks[1,1].rows)}(0)
-    cols = Array{eltype(BM.blocks[1,1].cols)}(0)
-    for ii in 1:size(BM.blocks, 1)
-        for jj in 1:size(BM.blocks, 2)
+function getmatches{G <: Integer}(BM::BlockMatchMatrix{G})
+    rows = Array{G}(0)
+    cols = Array{G}(0)
+    for jj in 1:size(BM.blocks, 2)
+        for ii in 1:size(BM.blocks, 1)
             if length(BM.blocks[ii, jj].rows) > 0
                 append!(rows, BM.blocks[ii, jj].rows .+ get(BM.cumrows, ii - 1, 0))
                 append!(cols, BM.blocks[ii, jj].cols .+ get(BM.cumcols, jj - 1, 0))
@@ -248,7 +253,7 @@ end
 """
 Return the index of the first element in A which equals val
 `findindex(A, val)`
-similar to indexin function but for a single element
+similar to indexin function but for a single element, also consider searchsorted
 """
 function findindex{G <: Number}(A::Array{G, 1}, val::G)
     return findfirst(x -> x == val, A)
@@ -257,7 +262,7 @@ end
 """
 Perform a move on the specificed elements of BlockMatchMatrix
 """
-function move_blockmatchmatrix{G <: Integer, T <: AbstractFloat}(blockrows::Array{G,1}, blockcols::Array{G,1}, BM::BlockMatchMatrix, p::T)
+function move_blockmatchmatrix{G <: Integer, T <: AbstractFloat}(blockrows::Array{G,1}, blockcols::Array{G,1}, BM::BlockMatchMatrix{G}, p::T)
     newBM = copy(BM)
     rows = getrows(blockrows, newBM)
     row = StatsBase.sample(rows)
@@ -313,7 +318,7 @@ end
 """
 Perform a move on the specificed elements of BlockMatchMatrix
 """
-function move_blockmatchmatrix_exclude{G <: Integer, T <: AbstractFloat}(blockrows::Array{G,1}, blockcols::Array{G,1}, exrows::Array{G,1}, excols::Array{G,1}, BM::BlockMatchMatrix, p::T)
+function move_blockmatchmatrix_exclude{G <: Integer, T <: AbstractFloat}(blockrows::Array{G,1}, blockcols::Array{G,1}, exrows::Array{G,1}, excols::Array{G,1}, BM::BlockMatchMatrix{G}, p::T)
     newBM = copy(BM)
     rows = getrows(blockrows, exrows, newBM)
     row = StatsBase.sample(rows)
