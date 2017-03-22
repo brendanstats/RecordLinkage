@@ -44,7 +44,7 @@ function sample_logprobabilities{G <: AbstractFloat, T <: Integer}(samplesize::T
 end
 
 function rejection_sampler_logproportions{G <: AbstractFloat, T <: Integer}(logProportions::Array{G, 1};
-                                                                            maxLogProportion::G = maximum(logProportions),
+                                                                            maxLogProportion::G = Base.maximum(logProportions),
                                                                             n::T = length(logProportions),
                                                                             logM::G = 0.01)
     while true
@@ -56,7 +56,7 @@ function rejection_sampler_logproportions{G <: AbstractFloat, T <: Integer}(logP
 end
 
 function rejection_sampler_logproportions{G <: AbstractFloat, T <: Integer}(samplesize::T, logProportions::Array{G, 1};
-                                                                            maxLogProportion::G = maximum(logProportions),
+                                                                            maxLogProportion::G = Base.maximum(logProportions),
                                                                             n::T = length(logProportions),
                                                                             logM::G = 0.01)
     out = Array{T}(samplesize)

@@ -34,11 +34,11 @@ Return the log(n!)
 function logfactorial{G <: Integer}(n::G)
     if n < zero(n)
         error("n must be non-negative")
-    elseif n < 2
+    elseif n < oftype(n, 2)
         return zero(n)
     end
-    out = 0.0
-    for ii = 2:n
+    out = zero(Float64)
+    for ii = oftype(n, 2):n
         out += log(ii)
     end
     return out
