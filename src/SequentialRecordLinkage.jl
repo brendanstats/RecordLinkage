@@ -58,7 +58,15 @@ export logcount_single_linkage,
     sampler_linkage_structure,
     count_diagonal_linkage,
     count_offdiagonal_linkage,
-    rejection_sampler_single_linkage
+    rejection_sampler_single_linkage,
+    permutation_diagonalindex,
+    permutation_offdiagonalindex,
+    permutation_blockindex,
+    sampler_nlinks_single_linkage,
+    sampler_blocklinks_single_linkage,
+    sampler_stepblocklinks_single_linkage,
+    sampler_single_linkage,
+    sampler_step_single_linkage
 export logsum, logfactorial
 export sample_logprobabilities, rejection_sampler_logproportions
 

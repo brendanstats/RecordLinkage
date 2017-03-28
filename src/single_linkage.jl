@@ -287,6 +287,252 @@ function rejection_sampler_single_linkage{G <: Integer, T <: AbstractFloat}(samp
     return outLinks, outOffDLinks
 end
 
+function permutation_diagonalindex{G <: Integer}(k::G)
+    idx = Array{G}(k)
+    idx[1] = one(G)
+    for ii in 2:k
+        idx[ii] = idx[ii - 1] + k + one(G)
+    end
+    return StatsBase.sample(idx, k, replace = false)
+end
+
+function permutation_offdiagonalindex{G <: Integer}(k::G)
+    idx = Array{G}(k * k - k)
+    kk = one(G)
+    for jj in 1:k
+        for ii in 1:k
+            if ii != jj                
+                idx[kk] = sub2ind((k,k), ii, jj)
+                kk += one(G)
+            end
+        end
+    end
+    return StatsBase.sample(idx, k * k - k, replace = false)
+end
+
+function permutation_blockindex{G <: Integer}(k::G)
+    return StatsBase.sample(1:(k^2), k^2, replace = false)
+end
+
+function sampler_nlinks_single_linkage{G <: Integer}(nrow::G, ncol::G)
+    if nrow == zero(G) || ncol == zero(G)
+        return zero(Int64)
+    else
+        logP = logprobability_single_linkage(nrow, ncol)
+        return sample_logprobabilities(logP) - 1
+    end
+end
+
+function sampler_nlinks_single_linkage{G <: Integer, T <: AbstractFloat}(nrow::G, ncol::G, logpenalty::T)
+    if nrow == zero(G) || ncol == zero(G)
+        return zero(Int64)
+    else
+        logP = logprobability_single_linkage(nrow, ncol, logpenalty)
+        return sample_logprobabilities(logP) - 1
+    end
+end
+
+function sampler_blocklinks_single_linkage{G <: Integer}(nrows::Array{G,1}, ncols::Array{G,1})
+    k = length(nrows)
+    if k != length(ncols)
+        error("number of rows blocks and column blocks must match")
+    end
+
+    #Comptue quantities
+    openrows = copy(nrows)
+    opencols = copy(ncols)
+    blocklinks = zeros(Int64, k, k)
+
+    #Sample on-diagonal links
+    for idx in permutation_blockindex(k)
+        brow, bcol = ind2sub((k,k), idx)
+        nlinks = sampler_nlinks_single_linkage(openrows[brow], opencols[bcol])
+        openrows[brow] -= nlinks
+        opencols[bcol] -= nlinks
+        blocklinks[brow, bcol] = nlinks
+    end
+
+    return blocklinks
+end
+
+function sampler_blocklinks_single_linkage{G <: Integer, T <: AbstractFloat}(nrows::Array{G,1}, ncols::Array{G,1}, logpenalty::T)
+    k = length(nrows)
+    if k != length(ncols)
+        error("number of rows blocks and column blocks must match")
+    end
+
+    #Comptue quantities
+    openrows = copy(nrows)
+    opencols = copy(ncols)
+    blocklinks = zeros(Int64, k, k)
+
+    #Sample on-diagonal links
+    for idx in permutation_blockindex(k)
+        brow, bcol = ind2sub((k,k), idx)
+        nlinks = sampler_nlinks_single_linkage(openrows[brow], opencols[bcol], logpenalty)
+        openrows[brow] -= nlinks
+        opencols[bcol] -= nlinks
+        blocklinks[brow, bcol] = nlinks
+    end
+
+    return blocklinks
+end
+
+
+function sampler_stepblocklinks_single_linkage{G <: Integer}(nrows::Array{G,1}, ncols::Array{G,1})
+    k = length(nrows)
+    if k != length(ncols)
+        error("number of rows blocks and column blocks must match")
+    end
+
+    #Comptue quantities
+    openrows = copy(nrows)
+    opencols = copy(ncols)
+    onIdx = permutation_diagonalindex(k)
+    offIdx = permutation_offdiagonalindex(k)
+    blocklinks = zeros(Int64, k, k)
+
+    #Sample on-diagonal links
+    for idx in onIdx
+        brow, bcol = ind2sub((k,k), idx)
+        nlinks = sampler_nlinks_single_linkage(openrows[brow], opencols[bcol])
+        openrows[brow] -= nlinks
+        opencols[bcol] -= nlinks
+        blocklinks[brow, bcol] = nlinks
+    end
+
+    #Sample off-diagonal links
+    for idx in offIdx
+        brow, bcol = ind2sub((k,k), idx)
+        nlinks = sampler_nlinks_single_linkage(openrows[brow], opencols[bcol])
+        openrows[brow] -= nlinks
+        opencols[bcol] -= nlinks
+        blocklinks[brow, bcol] = nlinks
+    end
+    return blocklinks
+end
+
+function sampler_stepblocklinks_single_linkage{G <: Integer, T <: AbstractFloat}(nrows::Array{G,1}, ncols::Array{G,1}, logpenalty::T)
+    k = length(nrows)
+    if k != length(ncols)
+        error("number of rows blocks and column blocks must match")
+    end
+
+    #Comptue quantities
+    openrows = copy(nrows)
+    opencols = copy(ncols)
+    onIdx = permutation_diagonalindex(k)
+    offIdx = permutation_offdiagonalindex(k)
+    blocklinks = zeros(Int64, k, k)
+
+    #Sample on-diagonal links
+    for idx in onIdx
+        brow, bcol = ind2sub((k,k), idx)
+        nlinks = sampler_nlinks_single_linkage(openrows[brow], opencols[bcol], logpenalty)
+        openrows[brow] -= nlinks
+        opencols[bcol] -= nlinks
+        blocklinks[brow, bcol] = nlinks
+    end
+
+    #Sample off-diagonal links
+    for idx in offIdx
+        brow, bcol = ind2sub((k,k), idx)
+        nlinks = sampler_nlinks_single_linkage(openrows[brow], opencols[bcol], logpenalty)
+        openrows[brow] -= nlinks
+        opencols[bcol] -= nlinks
+        blocklinks[brow, bcol] = nlinks
+    end
+    return blocklinks
+end
+
+
+function sampler_stepblocklinks_single_linkage{G <: Integer, T <: AbstractFloat}(nrows::Array{G,1}, ncols::Array{G,1}, loglinkpenalty::T, logoffdiagonalpenality::T)
+    k = length(nrows)
+    if k != length(ncols)
+        error("number of rows blocks and column blocks must match")
+    end
+
+    #Comptue quantities
+    openrows = copy(nrows)
+    opencols = copy(ncols)
+    onIdx = permutation_diagonalindex(k)
+    offIdx = permutation_offdiagonalindex(k)
+    blocklinks = zeros(Int64, k, k)
+
+    #Sample on-diagonal links
+    for idx in onIdx
+        brow, bcol = ind2sub((k,k), idx)
+        nlinks = sampler_nlinks_single_linkage(openrows[brow], opencols[bcol], loglinkpenalty)
+        openrows[brow] -= nlinks
+        opencols[bcol] -= nlinks
+        blocklinks[brow, bcol] = nlinks
+    end
+
+    #Sample off-diagonal links
+    for idx in offIdx
+        brow, bcol = ind2sub((k,k), idx)
+        nlinks = sampler_nlinks_single_linkage(openrows[brow], opencols[bcol], loglinkpenalty + logoffdiagonalpenality)
+        openrows[brow] -= nlinks
+        opencols[bcol] -= nlinks
+        blocklinks[brow, bcol] = nlinks
+    end
+    return blocklinks
+end
+
+function sampler_single_linkage{G <: Integer, V <: Integer}(blocklinks::Array{V, 2}, cumrows::Array{G, 1}, cumcols::Array{G, 1}; totallinks::V = sum(blocklinks))
+    rowopen = trues(cumrows[end])
+    colopen = trues(cumcols[end])
+    rows = zeros(G, totallinks)
+    cols = zeros(G, totallinks)
+    addedlinks = 0
+    for (jj, maxcols) in enumerate(cumcols)
+        mincols = get(cumcols, jj - 1, 0) + 1
+        for (ii, maxrows) in enumerate(cumrows)
+            minrows = get(cumrows, ii - 1, 0) + 1
+
+            #choose rows and cols to link
+            addrows = StatsBase.sample((minrows:maxrows)[rowopen[minrows:maxrows]], blocklinks[ii, jj], replace = false)
+            addcols = StatsBase.sample((mincols:maxcols)[colopen[mincols:maxcols]], blocklinks[ii, jj], replace = false)
+
+            #add to linked rows and columns
+            rows[(addedlinks + 1):(addedlinks + blocklinks[ii, jj])] = addrows
+            cols[(addedlinks + 1):(addedlinks + blocklinks[ii, jj])] = addcols
+
+            #mark selected rows and cols as linked
+            rowopen[addrows] = false
+            colopen[addcols] = false
+
+            #add to total links
+            addedlinks += blocklinks[ii, jj]
+        end
+    end
+    return rows, cols
+end
+
+function sampler_single_linkage{G <: Integer}(nrows::Array{G, 1}, ncols::Array{G, 1})
+    blocklinks = sampler_blocklinks_single_linkage(nrows, ncols)
+    return sampler_single_linkage(blocklinks, cumsum(nrows), cumsum(ncols))
+end
+
+function sampler_single_linkage{G <: Integer, T <: AbstractFloat}(nrows::Array{G, 1}, ncols::Array{G, 1}, logpenalty::T)
+    blocklinks = sampler_blocklinks_single_linkage(nrows, ncols, logpenalty)
+    return sampler_single_linkage(blocklinks, cumsum(nrows), cumsum(ncols))
+end
+
+function sampler_step_single_linkage{G <: Integer}(nrows::Array{G, 1}, ncols::Array{G, 1})
+    blocklinks = sampler_stepblocklinks_single_linkage(nrows, ncols)
+    return sampler_single_linkage(blocklinks, cumsum(nrows), cumsum(ncols))
+end
+
+function sampler_step_single_linkage{G <: Integer, T <: AbstractFloat}(nrows::Array{G, 1}, ncols::Array{G, 1}, logpenalty::T)
+    blocklinks = sampler_stepblocklinks_single_linkage(nrows, ncols, logpenalty)
+    return sampler_single_linkage(blocklinks, cumsum(nrows), cumsum(ncols))
+end
+
+function sampler_step_single_linkage{G <: Integer, T <: AbstractFloat}(nrows::Array{G, 1}, ncols::Array{G, 1}, loglinkpenalty::T, logoffdiagonalpenality::T)
+    blocklinks = sampler_stepblocklinks_single_linkage(nrows, ncols, loglinkpenalty, logoffdiagonalpenality)
+    return sampler_single_linkage(blocklinks, cumsum(nrows), cumsum(ncols))
+end
 #=
 """
 Recursively determine the log of the number of single linkages across non-overlapping blocks holding total number of linkages constant
