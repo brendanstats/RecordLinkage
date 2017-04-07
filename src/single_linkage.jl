@@ -45,10 +45,16 @@ end
 Log number of all single linkage matricies with `nrow` rows and `ncol` columns by number of linkages, divided by maximum number of structures for specific number of linkages.
 """
 function logproportion_single_linkage{G <: Integer}(nrow::G, ncol::G)
-    if nrow < 1 || ncol < 1
+    if nrow < zero(G) || ncol < zero(G)
         error("nrow and ncol must both be postive integers")
     end
     maxLinks = min(nrow, ncol)
+
+    #Only one possible structure if one of the dimensions is zero
+    if maxLinks == zero(G)
+        return [0.0]
+    end
+    
     linkRatios = Array{Float64}(maxLinks)
     for ii in 1:maxLinks
         linkRatios[ii] = logratio_single_linkage(ii - 1, nrow, ncol)
@@ -67,16 +73,29 @@ end
 penalty scales linearly with number of linkages
 """
 function logproportion_single_linkage{G <: Integer, T <: AbstractFloat}(nrow::G, ncol::G, logpenalty::T)
-    if nrow < 1 || ncol < 1
-        error("nrow and ncol must both be postive integers")
+    
+    #negative rows / cols not allowed
+    if nrow < zero(G) || ncol < zero(G)
+        error("nrow and ncol must both be non-negative integers")
     end
+
+    #Only one possible structure if one of the dimensions is zero
     maxLinks = min(nrow, ncol)
+    if maxLinks == zero(G)
+        return [0.0]
+    end
+    
+    #Compute sequence of log of ratios between successive terms
     linkRatios = Array{Float64}(maxLinks)
     for ii in 1:maxLinks
         linkRatios[ii] = logratio_single_linkage(ii - 1, nrow, ncol, logpenalty)
     end
+
+    #Compute total since for 0 links there is always one structure
     logCounts = cumsum(linkRatios)
     maxLogCounts = Base.maximum(logCounts)
+
+    
     out = Array{eltype(maxLogCounts)}(maxLinks + 1)
     out[1] = -maxLogCounts
     for (ii, lct) in enumerate(logCounts)
@@ -185,6 +204,18 @@ function mode_single_linkage{G <: Integer, T <: AbstractFloat}(nrow::G, ncol::G,
     return out
 end
 
+function expected_nlinks_single_linkage{G <: Integer}(nrow::G, ncol::G)
+    logN = log(0:min(nrow, ncol))
+    logP = logprobability_single_linkage(nrow, ncol)
+    return exp(logsum(logN + logP))
+end
+
+function expected_nlinks_single_linkage{G <: Integer, T <: AbstractFloat}(nrow::G, ncol::G, logpenalty::T)
+    logN = log(0:min(nrow, ncol))
+    logP = logprobability_single_linkage(nrow, ncol, logpenalty)
+    return exp(logsum(logN + logP))
+end
+
 """
 Sample a single_linkage matrix with `nlinks` linkages given `nrow` rows and `ncol` columns
 `sampler_linkage_structure(nlinks, nrow, ncol)`
@@ -193,6 +224,29 @@ function sampler_linkage_structure{G <: Integer}(nlinks::G, nrow::G, ncol::G)
     rows = StatsBase.sample(1:nrow, nlinks, replace = false)
     cols = StatsBase.sample(1:ncol, nlinks, replace = false)
     return rows, cols
+end
+
+"""
+Generate all probability vectors up to maxrows and maxcols
+"""
+function matrix_logprobability_single_linkage{G <: Integer}(maxrow::G, maxcol::G)
+    out = Array{Vector{Float64}}(maxrow + 1, maxcol + 1)
+    for jj in 0:maxcol
+        for ii in 0:maxrow
+            out[ii + 1, jj + 1] = logprobability_single_linkage(ii, jj)
+        end
+    end
+    return out
+end
+
+function matrix_logprobability_single_linkage{G <: Integer, T <: AbstractFloat}(maxrow::G, maxcol::G, logpenalty::T)
+    out = Array{Vector{Float64}}(maxrow + 1, maxcol + 1)
+    for jj in 0:maxcol
+        for ii in 0:maxrow
+            out[ii + 1, jj + 1] = logprobability_single_linkage(ii, jj, logpenalty)
+        end
+    end
+    return out
 end
 
 """
@@ -533,6 +587,28 @@ function sampler_step_single_linkage{G <: Integer, T <: AbstractFloat}(nrows::Ar
     blocklinks = sampler_stepblocklinks_single_linkage(nrows, ncols, loglinkpenalty, logoffdiagonalpenality)
     return sampler_single_linkage(blocklinks, cumsum(nrows), cumsum(ncols))
 end
+
+"""
+Compute the log probability of a sequence of block link totals given a structure and a sampling order (permutaiton of indicies).  Quantities such as sampling penalties included in logprobNLink matrix
+"""
+function logprobability_blocknlinks_single_linkage{G <: Integer}(blocklinks::Array{Int64, 2}, permblockrows::Array{Int64, 1}, permblockcols::Array{Int64, 1}, nrowsRemain::Array{G,1}, ncolsRemain::Array{G,1}, logprobNLink::Matrix{Vector{Float64}})
+
+    #Track size of structure that can be sampled
+    openrows = copy(nrowsRemain)
+    opencols = copy(ncolsRemain)
+
+    logprob = 0.0
+    for (brow, bcol) in zip(permblockrows, permblockcols)
+        nlink = blocklinks[brow, bcol]
+
+        #+1 to allow for zeros
+        logprob += logprobNLink[openrows[brow] + 1, opencols[bcol] + 1][nlink + 1]
+        openrows[brow] -= nlink
+        opencols[bcol] -= nlink
+    end
+    return logprob
+end
+
 #=
 """
 Recursively determine the log of the number of single linkages across non-overlapping blocks holding total number of linkages constant

@@ -158,9 +158,25 @@ single_linkage_levels{T <: Integer, G <: AbstractFloat}(nRecords::T, nA::T, nB::
 single_linkage_levels{T <: Integer, G <: AbstractFloat}(nRecords::T, nA::T, nB::T, levels::Array{T, 1}, errorRate::G, blocking::Bool) = single_linkage_levels(nRecords, nA, nB, levels, fill(errorRate, length(levels)), blocking = blocking)
 
 """
-Convert a 2D Array into a single column and add columns indicating row and column index in original array.  Order is row, col, value
+Estimate MatchMatrix by identifying all elements in the data that have at least as many matches as specified, the default is the dimension of the observation.  Then a random permuation of the indicies is chosen.  Indicies are looped through and kept if both the row and column do not yet have a link in them.
 """
-function gridtoarray{G <: Real}(x::Array{G, 2})
-    nrow, ncol = size(x)
-    return [repeat(1:nrow, outer=ncol) repeat(1:ncol, inner=nrow) vec(x)]
+function estimate_C0{G <: Integer}(data::BitArray{3}, threshold::G = size(data, 3))
+    matchcounts = sum(data, 3)
+    n, m = size(matchcounts)
+    rowopen = trues(n)
+    colopen = trues(m)
+    idxs = find(matchcounts) do x
+        x >= threshold
+    end
+    rows = Array{Int64}()
+    cols = Array{Int64}()
+    for idx in idxs[randperm(length(idxs))]
+        ii, jj = ind2sub((n, m), idx)
+        if rowopen[ii] && colopen[jj]
+            rowopen[ii] = false
+            colopen[jj] = false
+            push!(rows, ii)
+            push!(cols, jj)
+    end
+    return MatchMatrix{Int64}(rows, cols, n, m)
 end

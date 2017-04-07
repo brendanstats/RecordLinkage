@@ -43,3 +43,24 @@ function logfactorial{G <: Integer}(n::G)
     end
     return out
 end
+
+"""
+Convert a 2D Array into a single column and add columns indicating row and column index in original array.  Order is row, col, value
+"""
+function grid2array{G <: Real}(x::Array{G, 2})
+    nrow, ncol = size(x)
+    return [repeat(1:nrow, outer=ncol) repeat(1:ncol, inner=nrow) vec(x)]
+end
+
+
+"""
+Switch two indicies in a vector
+"""
+function switchidx!{G <: Integer, T <: Real}(v::Array{T, 1}, idx1::G, idx2::G)
+    val = v[idx1]
+    v[idx1] = v[idx2]
+    v[idx2] = val
+    return v
+end
+
+switchidx{G <: Integer, T <: Real}(v::Array{T, 1}, idx1::G, idx2::G) = switchidx!(copy(v), idx1, idx2)

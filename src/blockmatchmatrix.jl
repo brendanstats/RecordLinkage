@@ -204,6 +204,41 @@ function getmatches{G <: Integer}(BM::BlockMatchMatrix{G})
 end
 
 """
+Get number of links in each block returned as a matrix with the same dimensions as the BlockMatchMatrix
+"""
+function getblocknlinks{G <: Integer}(BM::BlockMatchMatrix{G})
+    out = zeros(G, size(BM.blocks)...)
+    for ii in eachindex(BM.blocks)
+        out[ii] = length(BM.blocks[ii].rows)
+    end
+    return out
+end
+
+"""
+Reduce entries of nrows by the number of elements in each block contained in exrows
+`getnrowseffective(BM, exrows)`
+"""
+function getnrowsremaining{G <: Integer}(BM::BlockMatchMatrix{G}, exrows::Array{G, 1})
+    nrowsRemain = copy(BM.nrows)
+    for row in exrows
+        nrowsRemain[getblockrow(row, BM)] -= one(G)
+    end
+    return nrowsRemain
+end
+
+"""
+Reduce entries of ncols by the number of elements in each block contained in excols
+`getncolseffective(BM, exrows)`
+"""
+function getncolsremaining{G <: Integer}(BM::BlockMatchMatrix{G}, excols::Array{G, 1})
+    ncolsRemain = copy(BM.ncols)
+    for col in excols
+        ncolsRemain[getblockcol(col, BM)] -= one(G)
+    end
+    return ncolsRemain
+end
+
+"""
 Add a match to a BlockMatchMatrix
 """
 function add_match!{G <: Integer}(BM::BlockMatchMatrix{G}, blockrow::G, blockcol::G, row::G, col::G)

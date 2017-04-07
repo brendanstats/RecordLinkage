@@ -2,15 +2,12 @@ module SequentialRecordLinkage
 
 import StatsBase
 import Distributions
-import Base: convert, copy, in, ==
+import Base.convert, Base.copy, Base.in, Base.==
 
-export LogisticNormal,
-    logit,
-    logistic
+#Computational Functions
+export logsum, logfactorial, grid2array, switchidx, switchidx!
 
-export TruncatedPoisson
-export VolumePoisson
-export UniformSingleLinkage
+#Define new types
 export MatchMatrix,
     findindex,
     add_match!,
@@ -29,33 +26,30 @@ export BlockMatchMatrix,
     getcols,
     getindicies,
     getmatches,
-    move_blockmatchmatrix,
-    move_blockmatchmatrix_exclude,
+    getblocknlinks,
+    getnrowsremaining,
+    getncolsremaining,
     add_match!,
-    add_match
-    
-export simulate_singlelinkage_binary, single_linkage_levels, gridtoarray
+    add_match,
+    move_blockmatchmatrix,
+    move_blockmatchmatrix_exclude
 
-export data2table, loglikelihood_datatable, countones
-
-export UnitKernelDensity, unitkde_slow, unitkde_tilted
-
-export UnitKDEMixture, beta_mode
-
-#MCMC Functions
-export metropolis_hastings, metropolis_hastings_mixing
-export metropolis_hastings_sample
-export metropolis_hastings_twostep, metropolis_hastings_conditional_sample
-export metropolis_hastings_ptwostep
-export write_matchmatrix, write_probs, read_matchmatrix
-
-#Functions for determining the prior
+#Distrbution related functions
+export LogisticNormal,
+    logit,
+    logistic
+export TruncatedPoisson
+export VolumePoisson
+export UniformSingleLinkage
+export sample_logprobabilities, rejection_sampler_logproportions
 export logcount_single_linkage,
     logproportion_single_linkage,
     logprobability_single_linkage,
     logratio_single_linkage,
     mode_single_linkage,
+    expected_nlinks_single_linkage,
     sampler_linkage_structure,
+    matrix_logprobability_single_linkage,
     count_diagonal_linkage,
     count_offdiagonal_linkage,
     rejection_sampler_single_linkage,
@@ -66,28 +60,53 @@ export logcount_single_linkage,
     sampler_blocklinks_single_linkage,
     sampler_stepblocklinks_single_linkage,
     sampler_single_linkage,
-    sampler_step_single_linkage
-export logsum, logfactorial
-export sample_logprobabilities, rejection_sampler_logproportions
+    sampler_step_single_linkage,
+    logprobability_blocknlinks_single_linkage
 
+#RL Mechanics functions
+export simulate_singlelinkage_binary, single_linkage_levels
+export data2table, loglikelihood_datatable, countones
+export UnitKernelDensity, unitkde_slow, unitkde_tilted
+export UnitKDEMixture, beta_mode
+
+#MCMC Functions
+export metropolis_hastings, metropolis_hastings_mixing
+export metropolis_hastings_sample
+export metropolis_hastings_permuation, metropolis_hastings_permuation_sample
+
+export metropolis_hastings_twostep, metropolis_hastings_conditional_sample
+export metropolis_hastings_ptwostep
+
+export write_matchmatrix, write_probs, read_matchmatrix
+
+#Purely computational functions
+include("utils.jl")
+
+#New Types
+include("matchmatrix.jl")
+include("blockmatchmatrix.jl")
+
+#Distributions related functions
 include("logisticnormal.jl")
 include("truncatedpoisson.jl")
 include("volumepoisson.jl")
-include("matchmatrix.jl")
-include("blockmatchmatrix.jl")
 include("uniformsinglelinkage.jl")
+include("priorsamplers.jl")
+include("single_linkage.jl")
 
+#RL Mechanics Functions
 include("simrecords.jl")
 include("datatable.jl")
 include("unitkerneldensity.jl")
 include("unitkdemixture.jl")
 
+#MCMC Functions
 include("mcmc.jl")
 include("blockmcmc.jl")
+include("blockpermmcmc.jl")
+
 include("stepmcmc.jl")
 include("pstepmcmc.jl")
+
 include("post_processing.jl")
-include("single_linkage.jl")
-include("utils.jl")
-include("priorsamplers.jl")
 end
