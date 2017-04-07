@@ -177,6 +177,7 @@ function estimate_C0{G <: Integer}(data::BitArray{3}, threshold::G = size(data, 
             colopen[jj] = false
             push!(rows, ii)
             push!(cols, jj)
+        end
     end
     return MatchMatrix{Int64}(rows, cols, n, m)
 end
