@@ -26,11 +26,16 @@ export BlockMatchMatrix,
     getcols,
     getindicies,
     getmatches,
+    getrowempty,
+    getcolempty,
+    getemptyrows,
+    getemptycols,
     getblocknlinks,
     getnrowsremaining,
     getncolsremaining,
     add_match!,
     add_match,
+    remove_match!,
     move_blockmatchmatrix,
     move_blockmatchmatrix_exclude
 
@@ -64,7 +69,8 @@ export logcount_single_linkage,
     logprobability_blocknlinks_single_linkage
 
 #RL Mechanics functions
-export simulate_singlelinkage_binary, single_linkage_levels
+export simulate_singlelinkage_binary, single_linkage_levels,
+    estimate_C0, estimate_M0, estimate_U0
 export data2table, loglikelihood_datatable, countones
 export UnitKernelDensity, unitkde_slow, unitkde_tilted
 export UnitKDEMixture, beta_mode
@@ -72,7 +78,7 @@ export UnitKDEMixture, beta_mode
 #MCMC Functions
 export metropolis_hastings, metropolis_hastings_mixing
 export metropolis_hastings_sample
-export metropolis_hastings_permuation, metropolis_hastings_permuation_sample
+export metropolis_hastings_permutation, metropolis_hastings_permutation_sample
 
 export metropolis_hastings_twostep, metropolis_hastings_conditional_sample
 export metropolis_hastings_ptwostep

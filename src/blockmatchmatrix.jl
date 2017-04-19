@@ -101,6 +101,28 @@ function getblockcol{G <: Integer}(col::G, BM::BlockMatchMatrix{G})
 end
 
 """
+Return the index of the row from within a block, so if block contains rows 20 to 40 then return would be 1 for 20.
+"""
+function getrowofblock{G <: Integer}(row::G, blockrow::G, BM::BlockMatchMatrix{G})
+    return row - get(BM.cumrows, blockrow - one(G), zero(G))
+end
+
+function getrowofblock{G <: Integer}(row::G, BM::BlockMatchMatrix{G})
+    return row - get(BM.cumrows, getblockrow(row, BM) - one(G), zero(G))
+end
+
+"""
+Return the index of the row from within a block, so if block contains rows 20 to 40 then return would be 1 for 20.
+"""
+function getcolofblock{G <: Integer}(col::G, blockcol::G, BM::BlockMatchMatrix{G})
+    return col - get(BM.cumcols, blockcol - one(G), zero(G))
+end
+
+function getcolofblock{G <: Integer}(col::G, BM::BlockMatchMatrix{G})
+    return col - get(BM.cumcols, getblockcol(col, BM) - one(G), zero(G))
+end
+
+"""
 Return the rows of the full matrix corresponding to the given indicies
 """
 function getrows{G <: Integer}(blockrows::Array{G,1}, BM::BlockMatchMatrix{G})
@@ -177,6 +199,12 @@ end
 """
 Get columns and rows containing a match
 """
+function getmatches{G <: Integer}(blockrow::G, blockcol::G, BM::BlockMatchMatrix{G})
+    rows = BM.blocks[blockrow, blockcol].rows .+ get(BM.cumrows, blockrow - 1, 0)
+    cols = BM.blocks[blockrow, blockcol].cols .+ get(BM.cumcols, blockcol - 1, 0)
+    return rows, cols
+end
+
 function getmatches{G <: Integer}(blockrows::Array{G,1}, blockcols::Array{G,1}, BM::BlockMatchMatrix{G})
     rows = Array{G}(0)
     cols = Array{G}(0)
@@ -201,6 +229,101 @@ function getmatches{G <: Integer}(BM::BlockMatchMatrix{G})
         end
     end
     return rows, cols
+end
+
+"""
+Return a bit array the length of the total nrow with elements true if the row is empty and false if it is full
+"""
+function getrowempty{G <: Integer}(BM::BlockMatchMatrix{G})
+    out = trues(BM.nrow)
+    for ii in 1:length(BM.cumrows)
+        rowadj = get(BM.cumrows, ii - one(G), zero(G))
+        for jj in 1:length(BM.cumcols)
+            out[BM.blocks[ii, jj].rows .+ rowadj] .= false
+        end
+    end
+    return out
+end
+
+function getrowempty{G <: Integer}(blockrows::Array{G, 1}, BM::BlockMatchMatrix{G})
+    out = falses(BM.nrow)
+    out[getrows(blockrows, BM)] .= true
+    for ii in blockrows
+        rowadj = get(BM.cumrows, ii - one(G), zero(G))
+        for jj in 1:length(BM.cumcols)
+            out[BM.blocks[ii, jj].rows .+ rowadj] .= false
+        end
+    end
+    return out
+end
+
+function getrowempty{G <: Integer}(blockrows::Array{G, 1}, exrows::Array{G, 1}, BM::BlockMatchMatrix{G})
+    out = getrowempty(blockrows, BM)
+    out[exrows] .= false
+    return out
+end
+
+"""
+Return a bit array the length of the total ncol with elements true if the col is empty and false if it is full
+"""
+function getcolempty{G <: Integer}(BM::BlockMatchMatrix{G})
+    out = trues(BM.ncol)
+    for jj in 1:length(BM.cumcols)
+        coladj = get(BM.cumcols, jj - one(G), zero(G))
+        for ii in 1:length(BM.cumrows)
+            out[BM.blocks[ii, jj].cols .+ coladj] .= false
+        end
+    end
+    return out
+end
+
+function getcolempty{G <: Integer}(blockcols::Array{G, 1}, BM::BlockMatchMatrix{G})
+    out = falses(BM.ncol)
+    out[getcols(blockcols, BM)] .= true
+    for jj in blockcols
+        coladj = get(BM.cumcols, jj - one(G), zero(G))
+        for ii in 1:length(BM.cumrows)
+            out[BM.blocks[ii, jj].cols .+ coladj] .= false
+        end
+    end
+    return out
+end
+
+function getcolempty{G <: Integer}(blockcols::Array{G, 1}, excols::Array{G, 1}, BM::BlockMatchMatrix{G})
+    out = getcolempty(blockcols, BM)
+    out[excols] .= false
+    return out
+end
+
+
+"""
+Return all of the empty rows, used for adding matches / moving, wrapper around getrowempty
+"""
+function getemptyrows{G <: Integer}(BM::BlockMatchMatrix{G})
+    return find(getrowempty(BM))
+end
+
+function getemptyrows{G <: Integer}(blockrows::Array{G, 1}, BM::BlockMatchMatrix{G})
+    return find(getrowempty(blockrows, BM))
+end
+
+function getemptyrows{G <: Integer}(blockrows::Array{G, 1}, exrows::Array{G, 1}, BM::BlockMatchMatrix{G})
+    return find(getrowempty(blockrows, exrows, BM))
+end
+
+"""
+Return all of the empty columns, used for adding matches / moving, wrapper around getcolempty
+"""
+function getemptycols{G <: Integer}(BM::BlockMatchMatrix{G})
+    return find(getcolempty(BM))
+end
+
+function getemptycols{G <: Integer}(blockcols::Array{G, 1}, BM::BlockMatchMatrix{G})
+    return find(getcolempty(blockcols, BM))
+end
+
+function getemptycols{G <: Integer}(blockcols::Array{G, 1}, excols::Array{G, 1}, BM::BlockMatchMatrix{G})
+    return find(getcolempty(blockcols, excols, BM))
 end
 
 """
@@ -242,8 +365,8 @@ end
 Add a match to a BlockMatchMatrix
 """
 function add_match!{G <: Integer}(BM::BlockMatchMatrix{G}, blockrow::G, blockcol::G, row::G, col::G)
-    rowadj = row - get(BM.nrows, blockrow - 1, 0)
-    coladj = col - get(BM.ncols, blockcol - 1, 0)
+    rowadj = row - get(BM.cumrows, blockrow - 1, 0)
+    coladj = col - get(BM.cumcols, blockcol - 1, 0)
     push!(BM.blocks[blockrow, blockcol].rows, rowadj)
     push!(BM.blocks[blockrow, blockcol].cols, coladj)
     return BM
@@ -286,6 +409,27 @@ function add_match{G <: Integer}(BM::BlockMatchMatrix{G}, row::Array{G, 1}, col:
 end
 
 """
+Remove a match from the appropriate block, row and column index provided should be global not block specific
+"""
+function remove_match!{G <: Integer}(BM::BlockMatchMatrix{G}, row::G, col::G, blockrow::G, blockcol::G)
+    rob = getrowofblock(row, blockrow, BM)
+    cob = getcolofblock(col, blockcol, BM)
+
+    remove_match!(BM.blocks[blockrow, blockcol], rob, cob)
+    return BM
+end
+
+function remove_match!{G <: Integer}(BM::BlockMatchMatrix{G}, row::G, col::G)
+    blockrow = getblockrow(row, BM)
+    blockcol = getblockcol(col, BM)
+    return remove_match!(BM, row, col, blockrow, blockcol)
+end
+
+function =={G <: BlockMatchMatrix}(BM1::G, BM2::G)
+    return all(BM1.blocks .== BM2.blocks)
+end
+
+"""
 Return the index of the first element in A which equals val
 `findindex(A, val)`
 similar to indexin function but for a single element, also consider searchsorted
@@ -299,52 +443,65 @@ Perform a move on the specificed elements of BlockMatchMatrix
 """
 function move_blockmatchmatrix{G <: Integer, T <: AbstractFloat}(blockrows::Array{G,1}, blockcols::Array{G,1}, BM::BlockMatchMatrix{G}, p::T)
     newBM = copy(BM)
+
+    #Select row to add / delete / move match to
     rows = getrows(blockrows, newBM)
     row = StatsBase.sample(rows)
     blockrow = getblockrow(row, newBM)
-    matchrows, matchcols = getmatches(blockrows[blockrows .== blockrow], blockcols[blockrows .== blockrow], newBM)
-    cols = getcols(blockcols[blockrows .== blockrow], newBM)
+
+    #Determine if selected row is currently matched
+    blockidx = blockrows .== blockrow
+    matchrows, matchcols = getmatches(blockrows[blockidx], blockcols[blockidx], newBM)
+    cols = getcols(blockcols[blockidx], newBM)
     idx = findindex(matchrows, row)
+
     if idx != 0 #sampled row contains a match
-        #println(1)
+
         col = matchcols[idx]
         blockcol = getblockcol(col, newBM)
-        idx = findindex(newBM.blocks[blockrow, blockcol].rows, row - get(newBM.nrows, blockrow - 1, 0))
-        deleteat!(newBM.blocks[blockrow, blockcol].rows, idx)
-        deleteat!(newBM.blocks[blockrow, blockcol].cols, idx)
-        if rand() < p #delete
-            #println(2)
-            return newBM, p / (length(cols) - length(matchcols) + 1.0)
-        else #move
-            #println(3)
-            rowto = StatsBase.sample(push!(setdiff(getrows(blockrow, newBM), matchrows), row))
-            colto = StatsBase.sample(push!(setdiff(cols, matchcols), col))
-            blockcolto = getblockcol(colto, newBM)
-            push!(newBM.blocks[blockrow, blockcolto].rows, rowto - get(newBM.nrows, blockrow - 1, 0))
-            push!(newBM.blocks[blockrow, blockcolto].cols, colto - get(newBM.ncols, blockcolto - 1, 0))
-            return newBM, 1.0
-        end
-    else #sampled row does not contain a match
-        if length(matchcols) == length(cols) #if full move match to from different row
-            #println(4)
-            idx = StatsBase.sample(1:length(matchcols))
-            rowfrom = matchrows[idx]
-            col = matchcols[idx]
-            blockrowfrom = getblockrow(rowfrom, newBM)
-            blockcol = getblockcol(col, newBM)
+        remove_match!(newBM, row, col, blockrow, blockcol)
+        
+        if rand() < p #don't add back
 
-            idx = findindex(newBM.blocks[blockrowfrom, blockcol].rows, rowfrom - get(newBM.nrows, blockrowfrom - 1, 0))
-            deleteat!(newBM.blocks[blockrow, blockcol].rows, idx)
-            deleteat!(newBM.blocks[blockrow, blockcol].cols, idx)
-            push!(newBM.blocks[blockrow, blockcol].rows, row - get(newBM.nrows, blockrow - 1, 0))
-            push!(newBM.blocks[blockrow, blockcol].cols, col - get(newBM.ncols, blockcol - 1, 0))
+            #column count might need to be adjusted
+            #println("Delete")
+            return newBM, p / (length(cols) - length(matchcols) + 1.0)
+
+        else #move
+
+            #"move" to same row allowed since row deleted before checking availability
+            #emptycols = getemptycols(blockcols[blockidx], newBM)
+            rowto = StatsBase.sample(getemptyrows(blockrows[blockidx], newBM))
+            add_match!(newBM, rowto, col)
+            #println("Delete - Move")
+            return newBM, 1.0
+            
+        end
+
+    else #sampled row does not contain a match
+        emptycols = getemptycols(blockcols[blockidx], newBM)
+
+        #if full move match to from different row
+        if length(emptycols) == 0
+
+            col = StatsBase.sample(cols)
+            idx = findindex(matchcols, col)
+
+            if idx == 0
+                error("no empty cols and selected column not a match check initial matrix for consistency with selected blocks")
+            end
+
+            remove_match!(newBM, matchrows[idx], col)
+            add_match!(newBM, row, col)
+
+            #println("Add - Move")
             return newBM, 1.0
         else #add a match
-            #println(5)
-            col = StatsBase.sample(setdiff(cols, matchcols))
-            blockcol = getblockcol(col, BM)
-            push!(newBM.blocks[blockrow, blockcol].rows, row - get(newBM.nrows, blockrow - 1, 0))
-            push!(newBM.blocks[blockrow, blockcol].cols, col - get(newBM.ncols, blockcol - 1, 0))
+            
+            col = StatsBase.sample(emptycols)
+            add_match!(newBM, row, col)
+
+            #println("Add")
             return newBM, p / (length(cols) - length(matchcols) + 1.0)
         end
     end
@@ -355,61 +512,60 @@ Perform a move on the specificed elements of BlockMatchMatrix
 """
 function move_blockmatchmatrix_exclude{G <: Integer, T <: AbstractFloat}(blockrows::Array{G,1}, blockcols::Array{G,1}, exrows::Array{G,1}, excols::Array{G,1}, BM::BlockMatchMatrix{G}, p::T)
     newBM = copy(BM)
+
+     #Select row to add / delete / move match to
     rows = getrows(blockrows, exrows, newBM)
     row = StatsBase.sample(rows)
     blockrow = getblockrow(row, newBM)
-    matchrows, matchcols = getmatches(blockrows[blockrows .== blockrow], blockcols[blockrows .== blockrow], newBM)
-    cols = getcols(blockcols[blockrows .== blockrow], excols, newBM)
+
+    #Determine if selected row is currently matched
+    blockidx = blockrows .== blockrow
+    matchrows, matchcols = getmatches(blockrows[blockidx], blockcols[blockidx], newBM)
+    cols = getcols(blockcols[blockidx], excols, newBM)
     idx = findindex(matchrows, row)
+    
     if idx != 0 #sampled row contains a match
+        
         col = matchcols[idx]
         blockcol = getblockcol(col, newBM)
-        idx = findindex(newBM.blocks[blockrow, blockcol].rows, row - get(newBM.nrows, blockrow - 1, 0))
-        deleteat!(newBM.blocks[blockrow, blockcol].rows, idx)
-        deleteat!(newBM.blocks[blockrow, blockcol].cols, idx)
+        remove_match!(newBM, row, col, blockrow, blockcol)
+        
         if rand() < p #delete
+            
             return newBM, p / (length(cols) - length(matchcols) + 1)
+            
         else #move
-            rowto = StatsBase.sample(push!(setdiff(getrows(blockrow, exrows, newBM), matchrows), row))
-            colto = StatsBase.sample(push!(setdiff(cols, matchcols), col))
-            blockcolto = getblockcol(colto, newBM)
-            push!(newBM.blocks[blockrow, blockcolto].rows, rowto - get(newBM.nrows, blockrow - 1, 0))
-            push!(newBM.blocks[blockrow, blockcolto].cols, colto - get(newBM.ncols, blockcolto - 1, 0))
+
+            #"move" to same row allowed since row deleted before checking availability
+            #emptycols = getemptycols(blockcols[blockidx], newBM)
+            rowto = StatsBase.sample(getemptyrows(blockrows[blockidx], exrows, newBM))
+            add_match!(newBM, rowto, col)
             return newBM, 1.0
+            
         end
     else #sampled row does not contain a match
-        if length(matchcols) == length(cols) #if full move match to from different row
-            idx = StatsBase.sample(1:length(matchcols))
-            rowfrom = matchrows[idx]
-            col = matchcols[idx]
-            blockrowfrom = getblockrow(rowfrom, newBM)
-            blockcol = getblockcol(col, newBM)
+        emptycols = getemptycols(blockcols[blockidx], excols, newBM)
 
-            idx = findindex(newBM.blocks[blockrowfrom, blockcol].rows, rowfrom - get(newBM.nrows, blockrowfrom - 1, 0))
-            deleteat!(newBM.blocks[blockrow, blockcol].rows, idx)
-            deleteat!(newBM.blocks[blockrow, blockcol].cols, idx)
-            push!(newBM.blocks[blockrow, blockcol].rows, row - get(newBM.nrows, blockrow - 1, 0))
-            push!(newBM.blocks[blockrow, blockcol].cols, col - get(newBM.ncols, blockcol - 1, 0))
+        #if full move match to from different row
+        if length(emptycols) == 0
+
+            col = StatsBase.sample(cols)
+            idx = findindex(matchcols, col)
+            
+            if idx == 0
+                error("no empty cols and selected column not a match check initial matrix for consistency with selected blocks")
+            end
+            
+            remove_match!(newBM, matchrows[idx], col)
+            add_match!(newBM, row, col)
             
             return newBM, 1.0
         else #add a match
-            col = StatsBase.sample(setdiff(cols, matchcols))
-            blockcol = getblockcol(col, BM)
-            push!(newBM.blocks[blockrow, blockcol].rows, row - get(newBM.nrows, blockrow - 1, 0))
-            push!(newBM.blocks[blockrow, blockcol].cols, col - get(newBM.ncols, blockcol - 1, 0))
-            return newBM, p / (length(cols) - length(matchcols) + 1)
+
+            col = StatsBase.sample(emptycols)
+            add_match!(newBM, row, col)
+            
+            return newBM, p / (length(cols) - length(matchcols) + 1.0)
         end
     end
 end
-
-function =={G <: BlockMatchMatrix}(BM1::G, BM2::G)
-    return all(BM1.blocks .== BM2.blocks)
-end
-
-#get(cumsum([1,6,3,5]), 1, 0)
-#enumerate()iterator that yields (i, x) where i is an index starting at 1, and x is the ith value from the given iterator
-#indicies
-#eachindex
-
-# 0.5 * (erf(1. / sqrt(2)) - erf(0. / sqrt(2)))
-#Distributions.cdf(Distributions.Normal(), 1) - Distributions.cdf(Distributions.Normal(), 0)

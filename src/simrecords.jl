@@ -168,8 +168,8 @@ function estimate_C0{G <: Integer}(data::BitArray{3}, threshold::G = size(data, 
     idxs = find(matchcounts) do x
         x >= threshold
     end
-    rows = Array{Int64}()
-    cols = Array{Int64}()
+    rows = Array{Int64}(0)
+    cols = Array{Int64}(0)
     for idx in idxs[randperm(length(idxs))]
         ii, jj = ind2sub((n, m), idx)
         if rowopen[ii] && colopen[jj]
@@ -180,4 +180,23 @@ function estimate_C0{G <: Integer}(data::BitArray{3}, threshold::G = size(data, 
         end
     end
     return MatchMatrix{Int64}(rows, cols, n, m)
+end
+
+function estimate_M0{G <: Integer}(data::BitArray{3}, C0::MatchMatrix{G}, ub::Float64 = 0.99)
+    k = size(data, 3)
+    cts = zeros(G, k)
+    for (ii, jj) in zip(C0.rows, C0.cols)
+        cts += data[ii, jj, :]
+    end
+    out = cts ./ length(C0.rows)
+    return min.(out, ub)
+end
+
+function estimate_U0{G <: Integer}(data::BitArray{3}, C0::MatchMatrix{G}, lb::Float64 = 0.01)
+    cts = vec(sum(data, (1, 2)))
+    for (ii, jj) in zip(C0.rows, C0.cols)
+        cts -= data[ii, jj, :]
+    end
+    out = cts ./ (C0.nrow * C0.ncol - length(C0.rows))
+    return max.(out, lb)
 end

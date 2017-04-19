@@ -1,7 +1,7 @@
 """
 Metropolis-Hastings MCMC Algorithm for posterior distribution of a grid of MatchMatricies
 """
-function metropolis_hastings_permuation{G <: Integer, T <: AbstractFloat}(
+function metropolis_hastings_permutation{G <: Integer, T <: AbstractFloat}(
     niter::Int64,
     data::BitArray{3},
     blockrows::Array{G, 1},
@@ -45,7 +45,7 @@ function metropolis_hastings_permuation{G <: Integer, T <: AbstractFloat}(
     transU = falses(niter)
 
     #Initial States
-    currBM = BM0
+    currBM = copy(BM0)
     currTable = data2table(data, blockrows, blockcols, currBM)
     currBlockNLinks = getblocknlinks(currBM)
     currPerm = perm0
@@ -198,7 +198,7 @@ function metropolis_hastings_permutation{G <: Integer, T <: AbstractFloat}(
     transU = falses(niter)
 
     #Initial States
-    currBM = BM0
+    currBM = copy(BM0)
     currTable = data2table(data, blockrows, blockcols, currBM)
     currBlockNLinks = getblocknlinks(currBM)
     currPerm = perm0
@@ -217,7 +217,7 @@ function metropolis_hastings_permutation{G <: Integer, T <: AbstractFloat}(
             propBlockNLinks = getblocknlinks(propBM)
             
             #compute a1
-            a1 = exp(logpdfBM(propBlockNLinks, currBRows, currBCols, nrowsRemain, ncolsRemain) + loglikelihood(propTable, currM, currU) - logpdfBM(currBlockNLinks, currBRows, currBCols) - loglikelihood(currTable, currM, currU, nrowsRemain, ncolsRemain))
+            a1 = exp(logpdfBM(propBlockNLinks, currBRows, currBCols, nrowsRemain, ncolsRemain) + loglikelihood(propTable, currM, currU) - logpdfBM(currBlockNLinks, currBRows, currBCols, nrowsRemain, ncolsRemain) - loglikelihood(currTable, currM, currU))
 
             #compute a2
             a2 = ratioBM
@@ -301,7 +301,7 @@ end
 """
 Metropolis-Hastings MCMC Algorithm for posterior distribution of a grid of MatchMatricies
 """
-function metropolis_hastings_permuation_sample{G <: Integer, T <: AbstractFloat}(
+function metropolis_hastings_permutation_sample{G <: Integer, T <: AbstractFloat}(
     niter::Int64,
     data::BitArray{3},
     blockrows::Array{G, 1},
@@ -461,17 +461,29 @@ function metropolis_hastings_permutation_sample{G <: Integer, T <: AbstractFloat
     nrowsRemain = getnrowsremaining(BM0, exrows)
     ncolsRemain = getncolsremaining(BM0, excols)
     
+    #Initial States
+    currBM = BM0
+    currTable = data2table(data, blockrows, blockcols, currBM)
+    currBlockNLinks = getblocknlinks(currBM)
+    currPerm = perm0
+    currBRows = blockrows[currPerm]
+    currBCols = blockcols[currPerm]
+    currM = M0
+    currU = U0
+    
     #out iteration
     for ii in 1:niter
+        #println("Iteration ", ii)
         
         #Inner iteration for BM
+        #println("Moving BM")
         for gg in 1:nBM
             propBM, ratioBM = transitionBM(blockrows, blockcols, exrows, excols, currBM)
             propTable = data2table(data, blockrows, blockcols, propBM)
             propBlockNLinks = getblocknlinks(propBM)
             
             #compute a1
-            a1 = exp(logpdfBM(propBlockNLinks, currBRows, currBCols, nrowsRemain, ncolsRemain) + loglikelihood(propTable, currM, currU) - logpdfBM(currBlockNLinks, currBRows, currBCols, nrowsRemain, ncolsRemain) - loglikelihood(currTable, currM, currU, exrows, excols))
+            a1 = exp(logpdfBM(propBlockNLinks, currBRows, currBCols, nrowsRemain, ncolsRemain) + loglikelihood(propTable, currM, currU) - logpdfBM(currBlockNLinks, currBRows, currBCols, nrowsRemain, ncolsRemain) - loglikelihood(currTable, currM, currU))
 
             #compute a2
             a2 = ratioBM
@@ -485,6 +497,7 @@ function metropolis_hastings_permutation_sample{G <: Integer, T <: AbstractFloat
         end
 
         #Inner iteration for permutation
+        #println("Moving Permuation")
         for pp in nPerm
             propPerm, ratioPerm, = transitionPerm(currPerm)
             propBRows = blockrows[propPerm]
@@ -505,6 +518,7 @@ function metropolis_hastings_permutation_sample{G <: Integer, T <: AbstractFloat
         end
         
         #Inner iteration for M
+        #println("Moving M")
         for mm in nM
             propM, ratioM = transitionM(currM)
 
@@ -521,6 +535,7 @@ function metropolis_hastings_permutation_sample{G <: Integer, T <: AbstractFloat
         end
 
         #Inner iteration for U
+        #println("Moving U")
         for uu in nU
             propU, ratioU = transitionU(currU)
 

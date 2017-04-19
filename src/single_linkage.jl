@@ -593,10 +593,28 @@ Compute the log probability of a sequence of block link totals given a structure
 """
 function logprobability_blocknlinks_single_linkage{G <: Integer}(blocklinks::Array{Int64, 2}, permblockrows::Array{Int64, 1}, permblockcols::Array{Int64, 1}, nrowsRemain::Array{G,1}, ncolsRemain::Array{G,1}, logprobNLink::Matrix{Vector{Float64}})
 
+    rowTotals = zeros(G, length(nrowsRemain))
+    colTotals = zeros(G, length(ncolsRemain))
+
+    for (rr,cc) in zip(permblockrows, permblockcols)
+        rowTotals[rr] += blocklinks[rr, cc]
+        colTotals[cc] += blocklinks[rr, cc]
+    end
+    
+    if any(rowTotals .> nrowsRemain)
+        println(blocklinks, nrowsRemain)
+        error("number of links in block exceed number of rows")
+    end
+    
+    if any(colTotals .> ncolsRemain)
+        println(blocklinks, ncolsRemain)
+        error("number of links in block exceed number of cols")
+    end
+    
     #Track size of structure that can be sampled
     openrows = copy(nrowsRemain)
     opencols = copy(ncolsRemain)
-
+    
     logprob = 0.0
     for (brow, bcol) in zip(permblockrows, permblockcols)
         nlink = blocklinks[brow, bcol]
