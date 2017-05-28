@@ -24,7 +24,7 @@ function metropolis_hastings_conditional_sample{G <: Integer, T <: AbstractFloat
     nM::Int64 = 1,
     nU::Int64 = 1)
 
-    #Sample possible indcies
+    #Sample possible indicies
     draw = StatsBase.sample(minidx:size(blockArray, 1))
 
     #Transfer sampled entries to starting array
@@ -35,10 +35,22 @@ function metropolis_hastings_conditional_sample{G <: Integer, T <: AbstractFloat
     exrows, excols = getmatches(BM)
 
     #Map posterior sample to initial BlockMatchMatrix and set remaining linkages
-    rows0, cols0 = getmatches(BM0)
+    rows0, cols0 = getmatches(nextBlockrows, nextBlockcols, BM0)
     keep = ![in(rr, exrows) || in(cc, excols) for (rr, cc) in zip(rows0, cols0)]
     add_match!(BM, rows0[keep], cols0[keep])    
 
+    #Check that
+    #mr, mc = getmatches(condBlockrows, condBlockrows, BM)
+    #if !(issubset(mr, exrows) && issubset(exrows, mr)) || !(issubset(mc, excols) && issubset(excols, mc))
+    #    println("exrows: ", exrows)
+    #    println("excols: ", excols)
+    #    println("nrows: ", BM.nrows)
+    #    println("ncols: ", BM.ncols)
+    #    println(BM)
+    #    error("matches added to conditional blocks in initialization")
+    #end
+    
+    
     #Generate Conditional Sample    
     outBM, outM, outU =
         metropolis_hastings_sample(niter,
@@ -101,7 +113,7 @@ function metropolis_hastings_conditional_sample{G <: Integer, T <: AbstractFloat
     exrows, excols = getmatches(BM)
 
     #Map posterior sample to initial BlockMatchMatrix and set remaining linkages
-    rows0, cols0 = getmatches(BM0)
+    rows0, cols0 = getmatches(nextBlockrows, nextBlockcols, BM0)
     keep = ![in(rr, exrows) || in(cc, excols) for (rr, cc) in zip(rows0, cols0)]
     add_match!(BM, rows0[keep], cols0[keep])    
 
@@ -219,7 +231,7 @@ function metropolis_hastings_twostep{G <: Integer, T <: AbstractFloat}(
             nM = nM,
             nU = nU)
     end
-    return outC, outM, outU
+    return outC, outM, outU, S1BMArray, S1MArray, S1UArray
 end
 
 
@@ -321,5 +333,5 @@ function metropolis_hastings_twostep{G <: Integer, T <: AbstractFloat}(
             nM = nM,
             nU = nU)
     end
-    return outC, outPerm, outM, outU
+    return outC, outPerm, outM, outU, S1BMArray, S1PermArray, S1MArray, S1UArray
 end

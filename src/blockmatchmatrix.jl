@@ -513,16 +513,28 @@ Perform a move on the specificed elements of BlockMatchMatrix
 function move_blockmatchmatrix_exclude{G <: Integer, T <: AbstractFloat}(blockrows::Array{G,1}, blockcols::Array{G,1}, exrows::Array{G,1}, excols::Array{G,1}, BM::BlockMatchMatrix{G}, p::T)
     newBM = copy(BM)
 
-     #Select row to add / delete / move match to
+    #all columns or all rows contains a match from the previous stage
+    if length(exrows) == BM.nrows || length(excols) == BM.ncols
+        return newBM, 1.0
+    end
+
+    #Select row to add / delete / move match to
     rows = getrows(blockrows, exrows, newBM)
     row = StatsBase.sample(rows)
     blockrow = getblockrow(row, newBM)
 
+    #matchrows, matchcols = getmatches(blockrows[blockidx], blockcols[blockidx], newBM)
+    matchrows, matchcols = getmatches(blockrows, blockcols, newBM)
+    idx = findindex(matchrows, row)
+    
     #Determine if selected row is currently matched
     blockidx = blockrows .== blockrow
-    matchrows, matchcols = getmatches(blockrows[blockidx], blockcols[blockidx], newBM)
     cols = getcols(blockcols[blockidx], excols, newBM)
-    idx = findindex(matchrows, row)
+    
+    #all columns in blocks overlapping with row matched in a previous stage
+    if length(cols) == 0
+        return newBM, 1.0
+    end
     
     if idx != 0 #sampled row contains a match
         
@@ -538,7 +550,25 @@ function move_blockmatchmatrix_exclude{G <: Integer, T <: AbstractFloat}(blockro
 
             #"move" to same row allowed since row deleted before checking availability
             #emptycols = getemptycols(blockcols[blockidx], newBM)
-            rowto = StatsBase.sample(getemptyrows(blockrows[blockidx], exrows, newBM))
+            #rowto = StatsBase.sample(getemptyrows(blockrows[blockidx], exrows, newBM)) #integer division error
+            emptyrows = getemptyrows([blockrow], exrows, newBM)
+            if length(emptyrows) == 0
+                println("row: ", row)
+                println("col: ", col)
+                println("blockrow: ", blockrow)
+                println("blockcol: ", blockcol)
+                println("matchrows: ", matchrows)
+                println("matchcols: ", matchcols)
+                println("exrows: ", exrows)
+                println("excols: ", excols)
+                println("nrows: ", newBM.nrows)
+                println("ncols: ", newBM.ncols)
+                println(BM.blocks[blockrow, blockcol])
+                println(newBM.blocks[blockrow, blockcol])
+                println(BM)
+                error("no empty rows after deletion, logic error")
+            end
+            rowto = StatsBase.sample(emptyrows) #integer division error
             add_match!(newBM, rowto, col)
             return newBM, 1.0
             
@@ -553,7 +583,24 @@ function move_blockmatchmatrix_exclude{G <: Integer, T <: AbstractFloat}(blockro
             idx = findindex(matchcols, col)
             
             if idx == 0
+                blockcol = getblockcol(col, newBM)
+                println("row: ", row)
+                println("col: ", col)
+                println("blockrow: ", blockrow)
+                println("blockcol: ", blockcol)
+                println("matchrows: ", matchrows)
+                println("matchcols: ", matchcols)
+                println("exrows: ", exrows)
+                println("excols: ", excols)
+                println("nrows: ", newBM.nrows)
+                println("ncols: ", newBM.ncols)
+                println(BM.blocks[blockrow, blockcol])
+                println(newBM.blocks[blockrow, blockcol])
+                println(BM)
+
                 error("no empty cols and selected column not a match check initial matrix for consistency with selected blocks")
+                #println("no empty cols and selected column not a match check initial matrix for consistency with selected blocks")
+                return newBM, 1.0
             end
             
             remove_match!(newBM, matchrows[idx], col)
