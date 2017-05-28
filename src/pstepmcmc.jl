@@ -59,6 +59,7 @@ function metropolis_hastings_ptwostep{G <: Integer, T <: AbstractFloat}(
     outM = Array{T}(nsamples, length(M0))
     outU = Array{T}(nsamples, length(U0))
 
+    condidxs = StatsBase.sample(minidx:size(S1BMArray, 1), nsamples)
     np = nprocs()
     ii = 1
     @sync begin
@@ -81,7 +82,7 @@ function metropolis_hastings_ptwostep{G <: Integer, T <: AbstractFloat}(
                                              blockcols1,
                                              blockrows2,
                                              blockcols2,
-                                             S1BMArray,
+                                             S1BMArray[condidxs[idx], :],
                                              BM0,
                                              M1,
                                              U1,
@@ -171,6 +172,7 @@ function metropolis_hastings_ptwostep{G <: Integer, T <: AbstractFloat}(
     outM = Array{T}(nsamples, length(M0))
     outU = Array{T}(nsamples, length(U0))
 
+    condidxs = StatsBase.sample(minidx:size(S1BMArray, 1), nsamples)
     np = nprocs()
     ii = 1
     @sync begin
@@ -186,14 +188,13 @@ function metropolis_hastings_ptwostep{G <: Integer, T <: AbstractFloat}(
                         outC[idx], outPerm[idx, :],  outM[idx, :], outU[idx, :] =
                             remotecall_fetch(metropolis_hastings_conditional_sample,
                                              pr,
-                                             minidx,
                                              niter2,
                                              data,
                                              blockrows1,
                                              blockcols1,
                                              blockrows2,
                                              blockcols2,
-                                             S1BMArray,
+                                             S1BMArray[condidxs[idx], :],
                                              BM0,
                                              perm1,
                                              M1,

@@ -2,14 +2,13 @@
 Draw a sample from Array{MatchMatrix, 2} and run conditional MCMC forward returning the last value
 """
 function metropolis_hastings_conditional_sample{G <: Integer, T <: AbstractFloat}(
-    minidx::Int64,
     niter::Int64,
     data::BitArray{3},
     condBlockrows::Array{G, 1},
     condBlockcols::Array{G, 1},
     nextBlockrows::Array{G, 1},
     nextBlockcols::Array{G, 1},
-    blockArray::Array{MatchMatrix{G}, 2},
+    blockArray::Array{MatchMatrix{G}, 1},
     BM0::BlockMatchMatrix{G},
     M0::Array{T, 1},
     U0::Array{T, 1},
@@ -24,13 +23,10 @@ function metropolis_hastings_conditional_sample{G <: Integer, T <: AbstractFloat
     nM::Int64 = 1,
     nU::Int64 = 1)
 
-    #Sample possible indicies
-    draw = StatsBase.sample(minidx:size(blockArray, 1))
-
     #Transfer sampled entries to starting array
     BM = BlockMatchMatrix(BM0.nrows, BM0.ncols)
     for (jj, (rr, cc)) in enumerate(zip(condBlockrows, condBlockcols))
-        BM.blocks[rr, cc] = blockArray[draw, jj]
+        BM.blocks[rr, cc] = blockArray[jj]
     end
     exrows, excols = getmatches(BM)
 
@@ -75,14 +71,13 @@ function metropolis_hastings_conditional_sample{G <: Integer, T <: AbstractFloat
 end
 
 function metropolis_hastings_conditional_sample{G <: Integer, T <: AbstractFloat}(
-    minidx::Int64,
     niter::Int64,
     data::BitArray{3},
     condBlockrows::Array{G, 1},
     condBlockcols::Array{G, 1},
     nextBlockrows::Array{G, 1},
     nextBlockcols::Array{G, 1},
-    blockArray::Array{MatchMatrix{G}, 2},
+    blockArray::Array{MatchMatrix{G}, 1},
     BM0::BlockMatchMatrix{G},
     perm0::Array{G, 1},
     M0::Array{T, 1},
@@ -102,13 +97,11 @@ function metropolis_hastings_conditional_sample{G <: Integer, T <: AbstractFloat
     nU::Int64 = 1)
 
     println("MCMC Setup")
-    #Sample possible indcies
-    draw = StatsBase.sample(minidx:size(blockArray, 1))
 
     #Transfer sampled entries to starting array
     BM = BlockMatchMatrix(BM0.nrows, BM0.ncols)
     for (jj, (rr, cc)) in enumerate(zip(condBlockrows, condBlockcols))
-        BM.blocks[rr, cc] = blockArray[draw, jj]
+        BM.blocks[rr, cc] = blockArray[jj]
     end
     exrows, excols = getmatches(BM)
 
