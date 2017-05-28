@@ -465,7 +465,8 @@ function move_blockmatchmatrix{G <: Integer, T <: AbstractFloat}(blockrows::Arra
 
             #column count might need to be adjusted
             #println("Delete")
-            return newBM, p / (length(cols) - length(matchcols) + 1.0)
+            #return newBM, p / (length(cols) - length(matchcols) + 1.0)
+            return newBM, 1.0 / (p * length(getemptycols(blockcols[blockidx], newBM)))
 
         else #move
 
@@ -502,7 +503,8 @@ function move_blockmatchmatrix{G <: Integer, T <: AbstractFloat}(blockrows::Arra
             add_match!(newBM, row, col)
 
             #println("Add")
-            return newBM, p / (length(cols) - length(matchcols) + 1.0)
+            #return newBM, p / (length(cols) - length(matchcols) + 1.0)
+            return newBM, p * length(emptycols)
         end
     end
 end
@@ -544,7 +546,7 @@ function move_blockmatchmatrix_exclude{G <: Integer, T <: AbstractFloat}(blockro
         
         if rand() < p #delete
             
-            return newBM, p / (length(cols) - length(matchcols) + 1)
+            return newBM, 1.0 / (p * length(getemptycols(blockcols[blockidx], excols, newBM)))
             
         else #move
 
@@ -612,7 +614,7 @@ function move_blockmatchmatrix_exclude{G <: Integer, T <: AbstractFloat}(blockro
             col = StatsBase.sample(emptycols)
             add_match!(newBM, row, col)
             
-            return newBM, p / (length(cols) - length(matchcols) + 1.0)
+            return newBM, p * length(emptycols)
         end
     end
 end
