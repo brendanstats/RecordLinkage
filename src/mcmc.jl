@@ -158,3 +158,100 @@ function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
     end
     return CArray, MArray, UArray, transC, transM, transU
 end
+
+"""
+Version where transition ratios are compute along with transitions
+"""
+function metropolis_hastings_mixing{G <: Integer, T <: AbstractFloat}(
+    niter::Int64,
+    data::BitArray{3},
+    C0::MatchMatrix{G},
+    M0::Array{T, 1},
+    U0::Array{T, 1},
+    logpdfC::Function,
+    logpdfM::Function,
+    logpdfU::Function,
+    loglikelihood::Function,
+    transitionC::Function,
+    transitionM::Function,
+    transitionU::Function;
+    nC::Int64 = 1,
+    nM::Int64 = 1,
+    nU::Int64 = 1)
+    
+    #MCMC Chains
+    CArray = Array{MatchMatrix}(niter)
+    MArray = Array{eltype(M0)}(niter, length(M0))
+    UArray = Array{eltype(U0)}(niter, length(U0))
+
+    #Track transitions
+    transC = falses(niter)
+    transM = falses(niter)
+    transU = falses(niter)
+
+    #Initial States
+    currC = C0
+    currTable = data2table(data, currC)
+    currM = M0
+    currU = U0
+    
+    #out iteration
+    for ii in 1:niter
+        
+        #Inner iteration for C
+        for cc in 1:nC
+            propC, ratioC = transitionC(currC)
+            propTable = data2table(data, propC)
+
+            #compute a1
+            a1 = exp(logpdfC(propC) + loglikelihood(propTable, currM, currU) - logpdfC(currC) - loglikelihood(currTable, currM, currU))
+
+            #compute a2
+            a2 = ratioC
+
+            if rand() < a1 * a2
+                currC = propC
+                currTable = propTable
+                transC[ii] = true
+            end
+        end
+
+        #Inner iteration for M
+        for mm in nM
+            propM, ratioM = transitionM(currM)
+
+            #compute a1
+            a1 = exp(logpdfM(propM) + loglikelihood(currTable, propM, currU) - logpdfM(currM) - loglikelihood(currTable, currM, currU))
+
+            #compute a2
+            a2 = ratioM
+
+            if rand() < a1 * a2
+                currM = propM
+                transM[ii] = true
+            end
+        end
+
+        #Inner iteration for M
+        for uu in nU
+            propU, ratioU = transitionU(currU)
+
+            #compute a1
+            a1 = exp(logpdfU(propU) + loglikelihood(currTable, currM, propU) - logpdfU(currU) - loglikelihood(currTable, currM, currU))
+
+            #compute a2
+            a2 = ratioU
+
+            if rand() < a1 * a2
+                currU = propU
+                transU[ii] = true
+            end
+        end
+
+        #Add states to chain
+        CArray[ii] = currC
+        MArray[ii, :] = currM
+        UArray[ii, :] = currU
+    end
+    return CArray, MArray, UArray, transC, transM, transU
+end
