@@ -2,6 +2,7 @@ module SequentialRecordLinkage
 
 import StatsBase
 import Distributions
+import HDF5
 import Base.convert, Base.copy, Base.in, Base.==
 
 #Computational Functions
@@ -83,7 +84,7 @@ export metropolis_hastings_permutation, metropolis_hastings_permutation_sample
 export metropolis_hastings_twostep, metropolis_hastings_conditional_sample
 export metropolis_hastings_ptwostep
 
-export write_matchmatrix, write_probs, read_matchmatrix
+export write_matchmatrix, write_probs, read_matchmatrix, writemhchains_h5
 
 #Purely computational functions
 include("utils.jl")

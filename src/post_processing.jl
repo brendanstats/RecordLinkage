@@ -133,3 +133,65 @@ function read_matchmatrix(filename::String; sep::Char = '\t', T::Type = Int64, s
         end
     end
 end
+
+"""
+Write array of MatchMatrix objects to an HDF5 database
+"""
+function writemhchains_h5{G <: Integer, T <: AbstractFloat}(filename::String,
+                                                            trialname::String,
+                                                            CArray::Array{MatchMatrix{G}, 1},
+                                                            pM::Array{T, 2},
+                                                            pU::Array{T, 2})
+    if isfile(filename)
+        f = HDF5.h5open(filename, "r+")
+    else
+        f = HDF5.h5open(filename, "w")
+    end
+    trial = HDF5.g_create(f, trialname)
+    trial["nsteps", "compress", 3] = length(CArray)
+    trial["nrow", "compress", 3] = CArray[1].nrow
+    trial["ncol", "compress", 3] = CArray[1].ncol
+    trial["pM", "compress", 3] = pM
+    trial["pU", "compress", 3] = pU
+    matches = HDF5.g_create(trial, "matches")
+    for (ii, c) in enumerate(CArray)
+        matches[string("rows", ii), "compress", 3] = c.rows
+        matches[string("cols", ii), "compress", 3] = c.cols
+    end
+    HDF5.close(f)
+end
+
+function writemhchains_h5{G <: Integer, T <: AbstractFloat}(filename::String,
+                                                            trialname::String,
+                                                            CArray::Array{MatchMatrix{G}, 2},
+                                                            pM::Array{T, 2},
+                                                            pU::Array{T, 2},
+                                                            blockrows::Array{G, 1},
+                                                            blockcols::Array{G, 1},
+                                                            nrows::Array{G, 1},
+                                                            ncols::Array{G, 1})
+    if isfile(filename)
+        f = HDF5.h5open(filename, "r+")
+    else
+        f = HDF5.h5open(filename, "w")
+    end
+    trial = HDF5.g_create(f, trialname)
+    trial["nsteps"] = size(CArray, 1)
+    trial["nrows"] = nrows
+    trial["ncols"] = ncols
+    trial["nrow"] = sum(nrows)
+    trial["ncol"] = sum(ncols)
+    trial["pM"] = pM
+    trial["pU"] = pU
+    matches = HDF5.g_create(trial, "matches")
+    for ii in 1:size(CArray, 1)
+        BM = BlockMatchMatrix(nrows, ncols)
+        for (jj, (rr, cc)) in enumerate(zip(blockrows, blockcols))
+            BM.blocks[rr, cc] = CArray[ii, jj]
+        end
+        rows, cols = getmatches(BM)
+        matches[string("rows", ii)] = rows
+        matches[string("cols", ii)] = cols
+    end
+    HDF5.close(f)
+end

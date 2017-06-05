@@ -20,9 +20,10 @@ function metropolis_hastings_ptwostep{G <: Integer, T <: AbstractFloat}(
     loglikelihood::Function,
     transitionBM::Function,
     transitionM::Function,
-    transitionU::Function,
-    θ::Float64,
-    p::Float64;
+    transitionU::Function;
+    θ::Float64 = 0.0,
+    p::Float64 = 0.1,
+    κ::Float64 = 23.0,
     nBM::Int64 = 1,
     nM::Int64 = 1,
     nU::Int64 = 1,
@@ -127,9 +128,10 @@ function metropolis_hastings_ptwostep{G <: Integer, T <: AbstractFloat}(
     transitionBM::Function,
     transitionPerm::Function,
     transitionM::Function,
-    transitionU::Function,
-    θ::Float64,
-    p::Float64;
+    transitionU::Function;
+    θ::Float64 = 0.0,
+    p::Float64 = 0.1,
+    κ::Float64 = 23.0,
     nBM::Int64 = 1,
     nPerm::Int64 = 1,
     nM::Int64 = 1,

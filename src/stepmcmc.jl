@@ -160,9 +160,10 @@ function metropolis_hastings_twostep{G <: Integer, T <: AbstractFloat}(
     loglikelihood::Function,
     transitionBM::Function,
     transitionM::Function,
-    transitionU::Function,
-    θ::Float64,
-    p::Float64;
+    transitionU::Function;
+    θ::Float64 = 0.0,
+    p::Float64 = 0.1,
+    κ::Float64 = 23.0,
     nBM::Int64 = 1,
     nM::Int64 = 1,
     nU::Int64 = 1)
@@ -184,7 +185,7 @@ function metropolis_hastings_twostep{G <: Integer, T <: AbstractFloat}(
     ukdeU = map(x -> unitkde_slow(vec(S1UArray[:,x]), 512, .01), 1:size(S1UArray, 2))
     U1 = Distributions.mode.(ukdeU)
     
-    dA = beta_mode.(M1, 3.0)
+    dA = beta_mode.(M1, κ)
     mixtureM = [UnitKDEMixture(ukde, d, p) for (ukde, d) in zip(ukdeM, dA)]
     function logpdfM2{T <: AbstractFloat}(γM::Array{T, 1})
         return sum([Distributions.logpdf(d, pi) for (d, pi) in zip(mixtureM, γM)])
@@ -251,9 +252,10 @@ function metropolis_hastings_twostep{G <: Integer, T <: AbstractFloat}(
     transitionBM::Function,
     transitionPerm::Function,
     transitionM::Function,
-    transitionU::Function,
-    θ::Float64,
-    p::Float64;
+    transitionU::Function;
+    θ::Float64 = 0.0,
+    p::Float64 = 0.1,
+    κ::Float64 = 23.0,
     nBM::Int64 = 1,
     nPerm::Int64 = 1,
     nM::Int64 = 1,
@@ -281,7 +283,7 @@ function metropolis_hastings_twostep{G <: Integer, T <: AbstractFloat}(
     ukdeU = map(x -> unitkde_slow(vec(S1UArray[:,x]), 512, .01), 1:size(S1UArray, 2))
     U1 = Distributions.mode.(ukdeU)
     
-    dA = beta_mode.(M1, 3.0)
+    dA = beta_mode.(M1, κ)
     mixtureM = [UnitKDEMixture(ukde, d, p) for (ukde, d) in zip(ukdeM, dA)]
     function logpdfM2{T <: AbstractFloat}(γM::Array{T, 1})
         return sum([Distributions.logpdf(d, pi) for (d, pi) in zip(mixtureM, γM)])
